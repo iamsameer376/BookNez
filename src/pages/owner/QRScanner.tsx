@@ -159,7 +159,7 @@ const QRScanner = () => {
 
   const verifyBooking = async (rawBookingId: string) => {
     const bookingId = rawBookingId.trim().replace(/^"|"$/g, '');
-    console.log("Verifying ID:", bookingId);
+
 
     try {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) {

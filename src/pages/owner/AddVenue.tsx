@@ -127,7 +127,7 @@ const AddVenue = () => {
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`; // Ensure user.id is string
 
-      console.log(`Attempting upload for User: ${user.id} to Path: ${filePath}`);
+
 
       const { error: uploadError } = await supabase.storage
         .from('venue_photos')
@@ -241,38 +241,7 @@ const AddVenue = () => {
                 <span className="font-bold">{submissionError}</span>
               </div>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 w-full"
-              onClick={async () => {
-                const logs = [];
-                logs.push(`User ID: ${user?.id || 'Not Logged In'}`);
 
-                // 1. List Buckets
-                const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-                if (listError) logs.push(`List Error: ${listError.message}`);
-                else logs.push(`Buckets Found: ${buckets.length} (${buckets.map(b => b.name).join(', ')})`);
-
-                // 2. Check Specific Bucket
-                const { data: bucket, error: bucketError } = await supabase.storage.getBucket('venue_photos');
-                if (bucketError) logs.push(`Get 'venue_photos' Error: ${bucketError.message}`);
-                else logs.push(`Get 'venue_photos' Success: Found! (Public: ${bucket.public})`);
-
-                // 3. Test Upload
-                if (user?.id) {
-                  const { error: uploadError } = await supabase.storage
-                    .from('venue_photos')
-                    .upload(`${user.id}/test_${Date.now()}.txt`, new Blob(['test'], { type: 'text/plain' }));
-                  if (uploadError) logs.push(`Probe Upload Error: ${uploadError.message}`);
-                  else logs.push(`Probe Upload Success!`);
-                }
-
-                alert(logs.join('\n'));
-              }}
-            >
-              🛠️ Debug: Run Storage Diagnostics
-            </Button>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Step 1: Basic Details */}
