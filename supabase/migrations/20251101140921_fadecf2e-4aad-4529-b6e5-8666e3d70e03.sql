@@ -1,0 +1,2 @@
+-- Add peak_hours array to venues table for owner-configurable peak timings
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS peak_hours text[] DEFAULT '{"06:00 PM", "07:00 PM", "08:00 PM", "09:00 PM"}'::text[];
