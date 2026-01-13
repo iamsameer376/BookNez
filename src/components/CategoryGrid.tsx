@@ -1,5 +1,16 @@
-import { Dumbbell, Scissors } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+
+const CricketBatIcon = ({ className }: { className?: string }) => (
+  <span className="text-3xl" role="img" aria-label="cricket bat">
+    🏏
+  </span>
+);
+
+const SalonIcon = ({ className }: { className?: string }) => (
+  <span className="text-3xl" role="img" aria-label="scissors">
+    ✂️
+  </span>
+);
 
 interface CategoryGridProps {
   onSelectCategory: (category: string) => void;
@@ -7,8 +18,8 @@ interface CategoryGridProps {
 }
 
 const categories = [
-  { id: 'turf', name: 'Turf', icon: Dumbbell, color: 'text-primary' },
-  { id: 'salon', name: 'Salons', icon: Scissors, color: 'text-secondary' },
+  { id: 'turf', name: 'TURF', icon: CricketBatIcon, color: 'text-primary' },
+  { id: 'salon', name: 'Salons', icon: SalonIcon, color: 'text-secondary' },
 ];
 
 export const CategoryGrid = ({ onSelectCategory, selectedCategory }: CategoryGridProps) => {

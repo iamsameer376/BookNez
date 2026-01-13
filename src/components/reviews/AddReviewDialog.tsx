@@ -89,8 +89,8 @@ export const AddReviewDialog = ({ venueId, userId, onReviewAdded, trigger }: Add
                             >
                                 <Star
                                     className={`w-8 h-8 ${star <= (hoverRating || rating)
-                                            ? "fill-yellow-400 text-yellow-400"
-                                            : "text-gray-300"
+                                        ? "fill-yellow-400 text-yellow-500"
+                                        : "text-gray-300"
                                         }`}
                                 />
                             </motion.button>

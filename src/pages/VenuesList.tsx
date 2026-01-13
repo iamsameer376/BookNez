@@ -2,56 +2,76 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Search, X } from 'lucide-react';
 import { VenueCard } from '@/components/VenueCard';
 import { FilterSort } from '@/components/FilterSort';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { Tables } from '@/integrations/supabase/types';
 
 type Venue = Tables<'venues'>;
 
 const VenuesList = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const category = searchParams.get('category');
+  const initialSearch = searchParams.get('search') || '';
 
   const [venues, setVenues] = useState<Venue[]>([]);
   const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
   const [loadingVenues, setLoadingVenues] = useState(false);
   const [sortBy, setSortBy] = useState('distance');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
 
   const fetchVenues = useCallback(async () => {
     setLoadingVenues(true);
     try {
       let query = supabase
-        .from('venues')
+        .from('venue_with_stats' as any)
         .select('*')
         .eq('is_active', true);
 
       if (category) {
-        // Support both new 'turf'/'pool' and legacy 'sports_turf'/'sports_pool'
-        // Using ilike for 'sports%' would match everything, but we want specific mapping.
-        // We use .or() to match either exact category OR sports_ prefixed version.
         query = query.or(`category.eq.${category},category.eq.sports_${category}`);
+      }
+
+      if (initialSearch) {
+        query = query.ilike('name', `%${initialSearch}%`);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      setVenues(data || []);
-      setFilteredVenues(data || []);
+      setVenues(data as any || []);
+      setFilteredVenues(data as any || []);
     } catch (error) {
       console.error('Error fetching venues:', error);
     } finally {
       setLoadingVenues(false);
     }
-  }, [category]);
+  }, [category, initialSearch]);
 
   useEffect(() => {
-    if (category) {
-      fetchVenues();
+    fetchVenues();
+  }, [fetchVenues]);
+
+  const handleLocalSearch = (query: string) => {
+    setSearchQuery(query);
+    const filtered = venues.filter(venue =>
+      venue.name.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredVenues(filtered);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setFilteredVenues(venues);
+    if (!category) {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category });
     }
-  }, [category, fetchVenues]);
+  };
 
   const handleSort = (sortType: string) => {
     setSortBy(sortType);
@@ -67,10 +87,11 @@ const VenuesList = () => {
     }
   };
 
-  const getCategoryTitle = () => {
-    if (category === 'sports_turf') return 'Sports Turf';
-    if (category === 'sports_pool') return 'Sports Pool';
-    return category ? category.charAt(0).toUpperCase() + category.slice(1) : '';
+  const getPageTitle = () => {
+    if (initialSearch) return `Results for "${initialSearch}"`;
+    if (category === 'sports_turf' || category === 'turf') return 'TURF Venues';
+    if (category === 'sports_pool') return 'Sports Pool Venues';
+    return category ? `${category.charAt(0).toUpperCase() + category.slice(1)} Venues` : 'All Venues';
   };
 
   return (
@@ -89,11 +110,36 @@ const VenuesList = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">
-            {getCategoryTitle()} Venues
-          </h1>
-          <FilterSort onSort={handleSort} currentSort={sortBy} />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">
+              {getPageTitle()}
+            </h1>
+            <p className="text-muted-foreground">
+              {filteredVenues.length} {filteredVenues.length === 1 ? 'venue' : 'venues'} found
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Filter results..."
+                className="pl-9 bg-card border-none shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
+                value={searchQuery}
+                onChange={(e) => handleLocalSearch(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <FilterSort onSort={handleSort} currentSort={sortBy} />
+          </div>
         </div>
 
         {loadingVenues ? (
@@ -113,7 +159,7 @@ const VenuesList = () => {
                 id={venue.id}
                 name={venue.name}
                 image={venue.photos[0] || '/placeholder.svg'}
-                rating={4.5}
+                rating={(venue as any).average_rating || 0}
                 price={Number(venue.pricing)}
                 distance={2.5}
                 category={venue.category}

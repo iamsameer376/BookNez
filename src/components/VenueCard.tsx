@@ -37,8 +37,8 @@ export const VenueCard = ({
           alt={name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
         />
-        <Badge className="absolute top-3 right-3 bg-background/90 text-foreground">
-          {category}
+        <Badge className="absolute top-3 right-3 bg-background/90 text-foreground uppercase">
+          {category === 'sports_turf' || category === 'turf' ? 'TURF' : category}
         </Badge>
       </div>
 
@@ -48,11 +48,11 @@ export const VenueCard = ({
             <h3 className="font-semibold text-lg line-clamp-1">{name}</h3>
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-accent text-accent" />
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />
                 <span>{rating.toFixed(1)}</span>
               </div>
               <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
+                <MapPin className="h-4 w-4 text-red-500" />
                 <span>{distance.toFixed(1)} km</span>
               </div>
             </div>

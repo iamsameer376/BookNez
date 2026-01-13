@@ -177,7 +177,7 @@ const MyProfile = () => {
             {profile?.city && (
               <div className="flex items-center gap-4 p-4 bg-secondary/10 rounded-xl transition-all hover:bg-secondary/15">
                 <div className="p-2 bg-background rounded-full">
-                  <MapPin className="h-5 w-5 text-secondary" />
+                  <MapPin className="h-5 w-5 text-red-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</p>

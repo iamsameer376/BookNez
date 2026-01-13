@@ -201,7 +201,7 @@ export const RecentBookings = () => {
 
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
+                    <MapPin className="h-4 w-4 text-red-500" />
                     <span className="line-clamp-1">{booking.venue.address}</span>
                   </div>
 
@@ -276,7 +276,7 @@ export const RecentBookings = () => {
 
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <MapPin className="h-4 w-4 text-red-500" />
                   <span>{selectedBooking.venue.address}</span>
                 </div>
 

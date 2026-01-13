@@ -124,7 +124,8 @@ const OwnerBookings = () => {
   }, {} as Record<string, BookingWithDetails[]>);
 
   const categoryLabels: Record<string, string> = {
-    'sports_turf': 'Sports Turf',
+    'sports_turf': 'TURF',
+    'turf': 'TURF',
     'sports_pool': 'Sports Pool',
     'salon': 'Salon',
     'cinema': 'Cinema',
@@ -171,7 +172,7 @@ const OwnerBookings = () => {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="space-y-3 flex-1">
                             <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <MapPin className="h-4 w-4 text-red-500" />
                               <div>
                                 <h4 className="font-semibold">{booking.venue_name}</h4>
                                 <p className="text-sm text-muted-foreground">{booking.venue_address}</p>

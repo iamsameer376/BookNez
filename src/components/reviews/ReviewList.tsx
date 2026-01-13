@@ -15,7 +15,6 @@ interface Review {
     reply_at?: string;
     profiles: {
         full_name: string;
-        email: string;
     };
 }
 
@@ -36,8 +35,7 @@ export const ReviewList = ({ venueId, refreshTrigger = 0 }: ReviewListProps) => 
                 .select(`
           *,
           profiles (
-            full_name,
-            email
+            full_name
           )
         `)
                 .eq('venue_id', venueId)

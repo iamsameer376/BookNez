@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   userRoles: string[];
   userName: string | null;
+  userCity: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
   hasRole: (role: 'user' | 'owner') => boolean;
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userCity, setUserCity] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -68,14 +70,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const roles = data?.map(r => r.role) || [];
       setUserRoles(roles);
 
-      // Fetch user name from profiles
+      // Fetch user name and city from profiles
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, city')
         .eq('id', userId)
         .maybeSingle();
 
       setUserName(profileData?.full_name || null);
+      setUserCity(profileData?.city || null);
     } catch (error) {
       console.error('Error fetching user roles:', error);
       setUserRoles([]);
@@ -110,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, userRoles, userName, loading, signOut, hasRole }}>
+    <AuthContext.Provider value={{ user, session, userRoles, userName, userCity, loading, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

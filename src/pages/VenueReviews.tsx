@@ -60,7 +60,7 @@ const VenueReviews = () => {
                         <div>
                             <h2 className="text-2xl font-bold mb-2">{venue.name}</h2>
                             <div className="flex items-center gap-2 text-muted-foreground">
-                                <MapPin className="h-4 w-4" />
+                                <MapPin className="h-4 w-4 text-red-500" />
                                 <span className="text-sm">{venue.address}</span>
                             </div>
                         </div>

@@ -57,7 +57,7 @@ export const ContactUs = () => {
 
           <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
             <div className="p-2 rounded-full bg-accent/50">
-              <MapPin className="h-5 w-5 text-accent" />
+              <MapPin className="h-5 w-5 text-red-500" />
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium">Office</p>

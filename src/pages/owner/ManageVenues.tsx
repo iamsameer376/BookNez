@@ -78,7 +78,8 @@ const ManageVenues = () => {
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      sports_turf: 'Sports - Turf',
+      sports_turf: 'TURF',
+      turf: 'TURF',
       sports_pool: 'Sports - Pool',
       salon: 'Salon',
       cinema: 'Cinema',
@@ -162,7 +163,7 @@ const ManageVenues = () => {
                   </p>
 
                   <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <MapPin className="h-4 w-4 text-red-500 mt-0.5" />
                     <p className="text-sm line-clamp-2">{venue.address}</p>
                   </div>
 

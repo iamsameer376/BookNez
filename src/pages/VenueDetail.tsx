@@ -434,7 +434,7 @@ const VenueDetail = () => {
                     </div>
 
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-5 w-5" />
+                      <MapPin className="h-5 w-5 text-red-500" />
                       <span>{venue.address}</span>
                     </div>
                   </div>

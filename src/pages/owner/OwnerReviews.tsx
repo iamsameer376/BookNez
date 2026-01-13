@@ -133,11 +133,11 @@ const OwnerReviews = () => {
                                                     {[1, 2, 3, 4, 5].map((star) => (
                                                         <Star
                                                             key={star}
-                                                            className={`w-4 h-4 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`}
+                                                            className={`w-4 h-4 ${star <= review.rating ? 'fill-yellow-400 text-yellow-500' : 'text-gray-200'}`}
                                                         />
                                                     ))}
                                                 </div>
-                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">by {review.profiles?.full_name || 'Guest'}</span>
+                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">by {review.profiles?.full_name || 'Guest User'}</span>
                                             </div>
                                         </div>
                                     </div>

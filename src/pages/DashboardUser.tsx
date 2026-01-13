@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, AlertCircle } from 'lucide-react';
+import { MapPin, AlertCircle, Search } from 'lucide-react';
 import { CategoryGrid } from '@/components/CategoryGrid';
 import { SettingsMenu } from '@/components/SettingsMenu';
 import { VenueCard } from '@/components/VenueCard';
 import { FilterSort } from '@/components/FilterSort';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Carousel,
@@ -37,13 +38,16 @@ interface Venue {
   latitude: number | null;
   longitude: number | null;
   category: string;
+  average_rating: number;
+  review_count: number;
 }
 
 const DashboardUser = () => {
-  const { user, userRoles, userName, loading } = useAuth();
+  const { user, userRoles, userName, userCity, loading } = useAuth();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [nearbyVenues, setNearbyVenues] = useState<Venue[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Check if user has 'user' role
@@ -65,13 +69,13 @@ const DashboardUser = () => {
   const fetchNearbyVenues = async () => {
     try {
       const { data, error } = await supabase
-        .from('venues')
+        .from('venue_with_stats' as any)
         .select('*')
         .eq('is_active', true)
         .limit(8);
 
       if (error) throw error;
-      setNearbyVenues(data || []);
+      setNearbyVenues(data as any);
     } catch (error) {
       console.error('Error fetching nearby venues:', error);
     }
@@ -96,6 +100,13 @@ const DashboardUser = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/venues?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
 
 
   return (
@@ -103,18 +114,38 @@ const DashboardUser = () => {
       {/* Header */}
       <header className="bg-card border-b sticky top-0 z-10 backdrop-blur-sm bg-card/95">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-primary">BookNex</h1>
-                {userName && <p className="text-sm text-muted-foreground">Welcome, {userName}</p>}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center justify-between w-full md:w-auto">
+              <div className="flex items-center gap-4">
+                <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer">
+                  <h1 className="text-2xl font-bold text-primary">BookNex</h1>
+                  {userName && <p className="text-sm text-muted-foreground leading-none mt-1">Welcome, {userName}</p>}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-3 ml-3">
+                  <MapPin className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                  <span className="font-medium text-foreground truncate max-w-[100px]">{userCity || 'Location'}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>Current Location</span>
+              <div className="md:hidden">
+                <SettingsMenu />
               </div>
             </div>
-            <SettingsMenu />
+
+            <div className="flex-1 max-w-xl w-full">
+              <form onSubmit={handleSearch} className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder="Search venues by name..."
+                  className="pl-10 h-11 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:bg-background transition-all rounded-xl"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+            </div>
+
+            <div className="hidden md:block">
+              <SettingsMenu />
+            </div>
           </div>
         </div>
       </header>
@@ -140,7 +171,7 @@ const DashboardUser = () => {
                         id={venue.id}
                         name={venue.name}
                         image={venue.photos[0] || '/placeholder.svg'}
-                        rating={4.5}
+                        rating={venue.average_rating || 0}
                         price={Number(venue.pricing)}
                         distance={2.5}
                         category={venue.category}

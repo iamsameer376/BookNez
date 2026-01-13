@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut, Plus, Building2, Calendar, DollarSign, QrCode, Settings, Users, MapPin, Star } from 'lucide-react';
+import { LogOut, Plus, Building2, Calendar, DollarSign, QrCode, Settings, Users, Star } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 
@@ -245,7 +245,7 @@ const DashboardOwner = () => {
                   className="w-full h-32 flex flex-col items-center justify-center gap-3 bg-card hover:border-primary/30"
                 >
                   <div className="p-3 bg-yellow-500/10 rounded-full text-yellow-500">
-                    <Star className="h-6 w-6" />
+                    <Star className="h-6 w-6 fill-yellow-400 text-yellow-500" />
                   </div>
                   <span className="font-medium">Reviews</span>
                 </Button>

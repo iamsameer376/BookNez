@@ -262,7 +262,7 @@ const AddVenue = () => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="turf">Turf</SelectItem>
+                      <SelectItem value="turf">TURF</SelectItem>
                       <SelectItem value="salon">Salon</SelectItem>
                     </SelectContent>
                   </Select>
