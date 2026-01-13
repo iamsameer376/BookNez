@@ -113,15 +113,15 @@ const DashboardUser = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 pb-20">
         {/* Header */}
-        <header className="bg-card border-b sticky top-0 z-10 backdrop-blur-sm bg-card/95">
+        <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10 transition-all duration-300">
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center justify-between w-full md:w-auto">
                 <div className="flex items-center gap-4">
                   <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer">
-                    <h1 className="text-2xl font-bold text-primary">BookNex</h1>
+                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
                     {userName && <p className="text-sm text-muted-foreground leading-none mt-1">Welcome, {userName}</p>}
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground border-l pl-3 ml-3">

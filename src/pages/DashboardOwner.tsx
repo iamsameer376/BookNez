@@ -8,6 +8,14 @@ import { LogOut, Plus, Building2, Calendar, DollarSign, QrCode, Settings, Users,
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import { SettingsMenu } from '@/components/SettingsMenu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { format, isToday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
+import { ChevronDown } from 'lucide-react';
 
 const container = {
   hidden: { opacity: 0 },
@@ -27,8 +35,10 @@ const item = {
 const DashboardOwner = () => {
   const { user, userRoles, userName, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [filterType, setFilterType] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [stats, setStats] = useState({
     totalBookings: 0,
+    filteredBookings: 0,
     totalRevenue: 0,
     activeVenues: 0,
     graphData: [] as any[],
@@ -53,7 +63,7 @@ const DashboardOwner = () => {
       const activeVenues = venues?.length || 0;
 
       if (venueIds.length === 0) {
-        setStats({ totalBookings: 0, totalRevenue: 0, activeVenues: 0, graphData: [] });
+        setStats({ totalBookings: 0, filteredBookings: 0, totalRevenue: 0, activeVenues: 0, graphData: [] });
         return;
       }
 
@@ -81,8 +91,29 @@ const DashboardOwner = () => {
         });
       }
 
+      // Filter bookings based on selected type
+      let filteredCount = 0;
+      if (bookings) {
+        filteredCount = bookings.filter(b => {
+          if (!b.booking_date) return false;
+          const date = parseISO(b.booking_date);
+
+          switch (filterType) {
+            case 'today':
+              return isToday(date);
+            case 'week':
+              return isThisWeek(date);
+            case 'month':
+              return isThisMonth(date);
+            default:
+              return true;
+          }
+        }).length;
+      }
+
       setStats({
         totalBookings,
+        filteredBookings: filteredCount,
         totalRevenue,
         activeVenues,
         graphData,
@@ -91,13 +122,13 @@ const DashboardOwner = () => {
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     }
-  }, [user]);
+  }, [user, filterType]);
 
   useEffect(() => {
     if (user && userRoles.includes('owner')) {
       fetchStats();
     }
-  }, [user, userRoles, fetchStats]);
+  }, [user, userRoles, fetchStats, filterType]);
 
   if (loading) {
     return (
@@ -139,15 +170,38 @@ const DashboardOwner = () => {
           <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="border-l-4 border-l-primary shadow-md hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-auto p-0 hover:bg-transparent font-medium flex items-center gap-1">
+                        {filterType === 'today' && "Today's Bookings"}
+                        {filterType === 'week' && "This Week's Bookings"}
+                        {filterType === 'month' && "This Month's Bookings"}
+                        {filterType === 'all' && "All Bookings"}
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => setFilterType('today')}>Today's Bookings</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setFilterType('week')}>This Week</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setFilterType('month')}>This Month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setFilterType('all')}>All Time</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardTitle>
                 <div className="p-2 bg-primary/10 rounded-full">
                   <Calendar className="h-4 w-4 text-primary" />
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {stats.totalBookings}
+                  {stats.filteredBookings}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filterType === 'today' ? 'Scheduled for today' :
+                    filterType === 'week' ? 'Scheduled for this week' :
+                      filterType === 'month' ? 'Scheduled for this month' : 'Total bookings all time'}
+                </p>
               </CardContent>
             </Card>
 
