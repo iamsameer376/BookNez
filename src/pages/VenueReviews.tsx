@@ -42,7 +42,7 @@ const VenueReviews = () => {
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                     <Button
                         variant="ghost"
-                        onClick={() => navigate(-1)}
+                        onClick={() => navigate(`/venues/${id}`)}
                         className="gap-2"
                     >
                         <ArrowLeft className="h-4 w-4" />

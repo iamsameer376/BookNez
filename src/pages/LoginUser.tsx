@@ -16,7 +16,7 @@ const LoginUser = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRoles } = useAuth();
+  const { user, userRoles, setActiveRole } = useAuth();
 
   useEffect(() => {
     // If logged in and has user role, go to dashboard
@@ -82,6 +82,7 @@ const LoginUser = () => {
         duration: 1000,
       });
 
+      setActiveRole('user');
       navigate('/dashboard/user');
     } catch (error) {
       console.error("Login error:", error);

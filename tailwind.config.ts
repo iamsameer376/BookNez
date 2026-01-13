@@ -64,6 +64,14 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      aspectRatio: {
+        golden: "1.618",
+      },
+      spacing: {
+        "golden-1": "1.618rem", // ~26px
+        "golden-2": "2.618rem", // ~42px 
+        "golden-3": "4.236rem", // ~68px
+      },
       keyframes: {
         "accordion-down": {
           from: {

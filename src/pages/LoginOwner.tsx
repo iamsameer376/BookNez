@@ -16,7 +16,7 @@ const LoginOwner = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRoles } = useAuth();
+  const { user, userRoles, setActiveRole } = useAuth();
 
   useEffect(() => {
     if (user && userRoles.includes('owner')) {
@@ -74,6 +74,7 @@ const LoginOwner = () => {
         duration: 1000,
       });
 
+      setActiveRole('owner');
       navigate('/dashboard/owner');
     } catch (error) {
       console.error("Login error:", error);

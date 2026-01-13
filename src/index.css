@@ -96,4 +96,17 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+  h1 {
+    @apply text-4xl lg:text-5xl font-bold tracking-tight;
+    line-height: 1.1; /* Tighter leading for headings */
+  }
+  h2 {
+    @apply text-2xl lg:text-3xl font-semibold tracking-tight;
+  }
+  h3 {
+    @apply text-xl lg:text-2xl font-semibold;
+  }
+  p {
+    @apply leading-relaxed; /* 1.625 is default relaxed, very close to 1.618 */
+  }
 }

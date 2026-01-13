@@ -8,6 +8,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRoles: string[];
+  activeRole: 'user' | 'owner' | null;
+  setActiveRole: (role: 'user' | 'owner') => void;
   userName: string | null;
   userCity: string | null;
   loading: boolean;
@@ -21,6 +23,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [activeRole, setActiveRoleState] = useState<'user' | 'owner' | null>(() => {
+    return localStorage.getItem('activeRole') as 'user' | 'owner' | null;
+  });
   const [userName, setUserName] = useState<string | null>(null);
   const [userCity, setUserCity] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +100,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(null);
       setUserRoles([]);
       setUserName(null);
+      setActiveRoleState(null);
+      localStorage.removeItem('activeRole');
       toast({
         title: "Signed out successfully",
         duration: 1000,
@@ -108,12 +115,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setActiveRole = (role: 'user' | 'owner') => {
+    setActiveRoleState(role);
+    localStorage.setItem('activeRole', role);
+  };
+
   const hasRole = (role: 'user' | 'owner') => {
     return userRoles.includes(role);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, userRoles, userName, userCity, loading, signOut, hasRole }}>
+    <AuthContext.Provider value={{ user, session, userRoles, activeRole, setActiveRole, userName, userCity, loading, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

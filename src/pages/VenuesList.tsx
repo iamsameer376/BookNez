@@ -8,6 +8,8 @@ import { FilterSort } from '@/components/FilterSort';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Tables } from '@/integrations/supabase/types';
+import PageTransition from '@/components/PageTransition';
+import { motion } from 'framer-motion';
 
 type Venue = Tables<'venues'>;
 
@@ -95,81 +97,103 @@ const VenuesList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/dashboard/user')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">
-              {getPageTitle()}
-            </h1>
-            <p className="text-muted-foreground">
-              {filteredVenues.length} {filteredVenues.length === 1 ? 'venue' : 'venues'} found
-            </p>
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+          <div className="container mx-auto px-4 py-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/dashboard/user')}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
           </div>
+        </header>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Filter results..."
-                className="pl-9 bg-card border-none shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
-                value={searchQuery}
-                onChange={(e) => handleLocalSearch(e.target.value)}
-              />
-              {searchQuery && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2">
+                {getPageTitle()}
+              </h1>
+              <p className="text-muted-foreground">
+                {filteredVenues.length} {filteredVenues.length === 1 ? 'venue' : 'venues'} found
+              </p>
             </div>
-            <FilterSort onSort={handleSort} currentSort={sortBy} />
-          </div>
-        </div>
 
-        {loadingVenues ? (
-          <div className="text-center py-8">Loading venues...</div>
-        ) : filteredVenues.length === 0 ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No venues found in this category yet. Please check back later or try another category.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVenues.map((venue) => (
-              <VenueCard
-                key={venue.id}
-                id={venue.id}
-                name={venue.name}
-                image={venue.photos[0] || '/placeholder.svg'}
-                rating={(venue as any).average_rating || 0}
-                price={Number(venue.pricing)}
-                distance={2.5}
-                category={venue.category}
-                amenities={venue.amenities.slice(0, 3)}
-              />
-            ))}
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filter results..."
+                  className="pl-9 bg-card border-none shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
+                  value={searchQuery}
+                  onChange={(e) => handleLocalSearch(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <FilterSort onSort={handleSort} currentSort={sortBy} />
+            </div>
           </div>
-        )}
-      </main>
-    </div>
+
+          {loadingVenues ? (
+            <div className="text-center py-8">Loading venues...</div>
+          ) : filteredVenues.length === 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                No venues found in this category yet. Please check back later or try another category.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                }
+              }}
+            >
+              {filteredVenues.map((venue) => (
+                <motion.div
+                  key={venue.id}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                >
+                  <VenueCard
+                    id={venue.id}
+                    name={venue.name}
+                    image={venue.photos[0] || '/placeholder.svg'}
+                    rating={(venue as any).average_rating || 0}
+                    price={Number(venue.pricing)}
+                    distance={2.5}
+                    category={venue.category}
+                    amenities={venue.amenities.slice(0, 3)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </main>
+      </div>
+    </PageTransition >
   );
 };
 

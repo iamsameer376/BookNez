@@ -18,25 +18,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { ContactUs } from '@/components/ContactUs';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useTheme } from '@/components/theme-provider';
 
 export const SettingsMenu = () => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showContactUs, setShowContactUs] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'light';
-    setTheme(savedTheme);
-  }, []);
+  const { theme, setTheme } = useTheme();
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   const handleLogout = async () => {
@@ -48,8 +41,8 @@ export const SettingsMenu = () => {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Settings className="h-5 w-5" />
+          <Button variant="ghost" className="rounded-full h-12 w-12 focus-visible:ring-0 focus-visible:ring-offset-0">
+            <Settings className="h-10 w-10" strokeWidth={2.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

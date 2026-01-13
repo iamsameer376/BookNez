@@ -1,31 +1,39 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/components/theme-provider";
 import MobileNav from "@/components/MobileNav";
-import Index from "./pages/Index";
-import LoginOwner from "./pages/LoginOwner";
-import LoginUser from "./pages/LoginUser";
-import RegisterOwner from "./pages/RegisterOwner";
-import RegisterUser from "./pages/RegisterUser";
-import DashboardOwner from "./pages/DashboardOwner";
-import DashboardUser from "./pages/DashboardUser";
-import AddVenue from "./pages/owner/AddVenue";
-import ManageVenues from "./pages/owner/ManageVenues";
-import VenueDetail from "./pages/VenueDetail";
-import MyProfile from "./pages/MyProfile";
-import VenuesList from "./pages/VenuesList";
-import EditVenue from "./pages/owner/EditVenue";
-import OwnerBookings from "./pages/owner/OwnerBookings";
-import OwnerReviews from "./pages/owner/OwnerReviews";
-import QRScanner from "./pages/owner/QRScanner";
-import BookingConfirm from "./pages/BookingConfirm";
-import BookingSuccess from "./pages/BookingSuccess";
-import ForgotPassword from "./pages/ForgotPassword";
-import MyBookings from "./pages/MyBookings";
-import VenueReviews from "./pages/VenueReviews";
+import { Loading } from "@/components/Loading";
+import { FavoritesProvider } from "./hooks/useFavorites";
+
+// Lazy load pages for performance
+const Index = lazy(() => import("./pages/Index"));
+const LoginOwner = lazy(() => import("./pages/LoginOwner"));
+const LoginUser = lazy(() => import("./pages/LoginUser"));
+const RegisterOwner = lazy(() => import("./pages/RegisterOwner"));
+const RegisterUser = lazy(() => import("./pages/RegisterUser"));
+const DashboardOwner = lazy(() => import("./pages/DashboardOwner"));
+const DashboardUser = lazy(() => import("./pages/DashboardUser"));
+const AddVenue = lazy(() => import("./pages/owner/AddVenue"));
+const ManageVenues = lazy(() => import("./pages/owner/ManageVenues"));
+const VenueDetail = lazy(() => import("./pages/VenueDetail"));
+const MyProfile = lazy(() => import("./pages/MyProfile"));
+const VenuesList = lazy(() => import("./pages/VenuesList"));
+const EditVenue = lazy(() => import("./pages/owner/EditVenue"));
+const OwnerBookings = lazy(() => import("./pages/owner/OwnerBookings"));
+const OwnerReviews = lazy(() => import("./pages/owner/OwnerReviews"));
+const QRScanner = lazy(() => import("./pages/owner/QRScanner"));
+const BookingConfirm = lazy(() => import("./pages/BookingConfirm"));
+const BookingSuccess = lazy(() => import("./pages/BookingSuccess"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const MyBookings = lazy(() => import("./pages/MyBookings"));
+const VenueReviews = lazy(() => import("./pages/VenueReviews"));
+const FavoriteVenues = lazy(() => import("@/pages/FavoriteVenues"));
+
 
 // Create a wrapper component to handle conditional rendering
 const AppContent = () => {
@@ -34,30 +42,33 @@ const AppContent = () => {
 
   return (
     <>
-      <div className={`min-h-screen bg-background text-foreground transition-colors duration-300 ${!isAuthPage ? 'pb-20' : ''}`}>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login/owner" element={<LoginOwner />} />
-          <Route path="/login/user" element={<LoginUser />} />
-          <Route path="/register/owner" element={<RegisterOwner />} />
-          <Route path="/register/user" element={<RegisterUser />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard/owner" element={<DashboardOwner />} />
-          <Route path="/dashboard/user" element={<DashboardUser />} />
-          <Route path="/owner/add-venue" element={<AddVenue />} />
-          <Route path="/owner/venues" element={<ManageVenues />} />
-          <Route path="/owner/venues/:id" element={<EditVenue />} />
-          <Route path="/owner/bookings" element={<OwnerBookings />} />
-          <Route path="/owner/reviews" element={<OwnerReviews />} />
-          <Route path="/owner/scan" element={<QRScanner />} />
-          <Route path="/venues/:id" element={<VenueDetail />} />
-          <Route path="/venues/:id/reviews" element={<VenueReviews />} />
-          <Route path="/venues" element={<VenuesList />} />
-          <Route path="/profile" element={<MyProfile />} />
-          <Route path="/booking/confirm" element={<BookingConfirm />} />
-          <Route path="/booking/success" element={<BookingSuccess />} />
-          <Route path="/my-bookings" element={<MyBookings />} />
-        </Routes>
+      <div className={`min-h-screen bg-background text-foreground transition-colors duration-200 ${!isAuthPage ? 'pb-20' : ''}`}>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login/owner" element={<LoginOwner />} />
+            <Route path="/login/user" element={<LoginUser />} />
+            <Route path="/register/owner" element={<RegisterOwner />} />
+            <Route path="/register/user" element={<RegisterUser />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/dashboard/owner" element={<DashboardOwner />} />
+            <Route path="/dashboard/user" element={<DashboardUser />} />
+            <Route path="/owner/add-venue" element={<AddVenue />} />
+            <Route path="/owner/venues" element={<ManageVenues />} />
+            <Route path="/owner/venues/:id" element={<EditVenue />} />
+            <Route path="/owner/bookings" element={<OwnerBookings />} />
+            <Route path="/owner/reviews" element={<OwnerReviews />} />
+            <Route path="/owner/scan" element={<QRScanner />} />
+            <Route path="/venues/:id" element={<VenueDetail />} />
+            <Route path="/venues/:id/reviews" element={<VenueReviews />} />
+            <Route path="/venues" element={<VenuesList />} />
+            <Route path="/favorites" element={<FavoriteVenues />} />
+            <Route path="/profile" element={<MyProfile />} />
+            <Route path="/booking/confirm" element={<BookingConfirm />} />
+            <Route path="/booking/success" element={<BookingSuccess />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
+          </Routes>
+        </Suspense>
 
         {/* Mobile Navigation Bar - Hidden on Auth pages */}
         {!isAuthPage && <MobileNav />}
@@ -70,15 +81,19 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <AppContent />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="light" storageKey="theme">
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <FavoritesProvider>
+              <Toaster />
+              <Sonner />
+              <AppContent />
+            </FavoritesProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

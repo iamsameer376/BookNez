@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { LogOut, Plus, Building2, Calendar, DollarSign, QrCode, Settings, Users, Star } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { SettingsMenu } from '@/components/SettingsMenu';
 
 const container = {
   hidden: { opacity: 0 },
@@ -117,10 +118,7 @@ const DashboardOwner = () => {
           >
             BookNex Owner
           </motion.h1>
-          <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-destructive">
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <SettingsMenu />
         </div>
       </header>
 
