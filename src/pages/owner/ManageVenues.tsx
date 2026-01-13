@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Edit, MapPin } from 'lucide-react';
+import { ArrowLeft, Edit, MapPin, Building2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 type Venue = Tables<'venues'>;
 
@@ -91,8 +93,32 @@ const ManageVenues = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading venues...</p>
+      <div className="min-h-screen bg-gradient-to-br from-secondary/10 via-background to-primary/10">
+        <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </header>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-6">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border bg-card text-card-foreground shadow space-y-4 p-4">
+                <Skeleton className="h-48 w-full rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/4" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -117,14 +143,16 @@ const ManageVenues = () => {
         </div>
 
         {venues.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">No venues yet</p>
+          <EmptyState
+            icon={Building2}
+            title="No venues yet"
+            description="You haven't added any venues yet. Add your first venue to start getting bookings."
+            action={
               <Button onClick={() => navigate('/owner/add-venue')}>
                 Add Your First Venue
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {venues.map((venue) => (

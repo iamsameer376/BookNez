@@ -14,6 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Tables } from '@/integrations/supabase/types';
 import { motion } from 'framer-motion';
+import { LocationPicker } from '@/components/LocationPicker';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Venue = Tables<'venues'>;
 type VenuePricing = Tables<'venue_pricing'>;
@@ -29,6 +32,7 @@ const EditVenue = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [pricing, setPricing] = useState<VenuePricing[]>([]);
   const [peakHours, setPeakHours] = useState<string[]>([]);
+  const [customSport, setCustomSport] = useState("");
 
   const timeSlots = [
     '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
@@ -284,6 +288,9 @@ const EditVenue = () => {
           opening_time: venue.opening_time,
           closing_time: venue.closing_time,
           peak_hours: peakHours,
+          sports: venue.sports,
+          latitude: venue.latitude,
+          longitude: venue.longitude
         })
         .eq('id', id as string);
 
@@ -294,13 +301,15 @@ const EditVenue = () => {
         description: 'Your venue has been updated successfully',
         duration: 1000,
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+    } catch (error: any) {
+      console.error('Update Error:', error);
+      const message = error?.message || error?.error_description || JSON.stringify(error) || "An unknown error occurred";
+
       toast({
         title: 'Error updating venue',
         description: message,
         variant: 'destructive',
-        duration: 1000,
+        duration: 3000,
       });
     } finally {
       setSaving(false);
@@ -309,8 +318,33 @@ const EditVenue = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 pb-24">
+        <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8 max-w-4xl">
+          <Skeleton className="h-10 w-48 mb-8" />
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+          <div className="border border-primary/20 shadow-lg rounded-lg bg-card p-6 space-y-6">
+            <Skeleton className="h-8 w-1/3 mb-4" />
+            <div className="grid grid-cols-3 gap-4">
+              <Skeleton className="h-32 w-full rounded-xl" />
+              <Skeleton className="h-32 w-full rounded-xl" />
+              <Skeleton className="h-32 w-full rounded-xl" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -413,15 +447,128 @@ const EditVenue = () => {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
+                    <div className="space-y-4">
+                      <Label>Location & Address</Label>
+                      <div className="mb-4">
+                        <LocationPicker
+                          onLocationSelect={(loc) => {
+                            if (venue) {
+                              setVenue({
+                                ...venue,
+                                address: loc.address,
+                                latitude: loc.lat,
+                                longitude: loc.lng
+                              });
+                            }
+                          }}
+                          initialLocation={
+                            venue?.latitude && venue?.longitude
+                              ? { lat: venue.latitude, lng: venue.longitude }
+                              : null
+                          }
+                        />
+                      </div>
                       <Input
                         id="address"
                         value={venue?.address || ''}
                         onChange={(e) => venue && setVenue({ ...venue, address: e.target.value })}
+                        placeholder="Full address..."
                         className="h-11"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        You can finetune the address after selecting from map.
+                      </p>
                     </div>
+
+                    {/* Sports Selection (Only for Turf) */}
+                    {venue?.category === 'turf' && (
+                      <div className="space-y-4 pt-2 border-t mt-4">
+                        <Label className="text-base font-semibold">Available Sports / Games</Label>
+                        <p className="text-sm text-muted-foreground">Select the sports available at your turf.</p>
+
+                        <div className="flex flex-wrap gap-2">
+                          {['Cricket', 'Football', 'Tennis', 'Badminton', 'Pickleball'].map((sport) => {
+                            const currentSports = venue.sports || [];
+                            const isSelected = currentSports.includes(sport);
+                            return (
+                              <div
+                                key={sport}
+                                onClick={() => {
+                                  const newSports = isSelected
+                                    ? currentSports.filter(s => s !== sport)
+                                    : [...currentSports, sport];
+                                  setVenue({ ...venue, sports: newSports });
+                                }}
+                                className={`
+                                cursor-pointer px-4 py-2 rounded-full border transition-all select-none text-sm
+                                ${isSelected
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                    : 'bg-background hover:bg-secondary/50 border-input'}
+                              `}
+                              >
+                                {sport}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex gap-2 items-center max-w-sm">
+                          <Input
+                            placeholder="Add other sport..."
+                            value={customSport}
+                            onChange={(e) => setCustomSport(e.target.value)}
+                            className="h-9"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (customSport.trim()) {
+                                  const currentSports = venue.sports || [];
+                                  setVenue({
+                                    ...venue,
+                                    sports: [...currentSports, customSport.trim()]
+                                  });
+                                  setCustomSport('');
+                                }
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              if (customSport.trim()) {
+                                const currentSports = venue.sports || [];
+                                setVenue({
+                                  ...venue,
+                                  sports: [...currentSports, customSport.trim()]
+                                });
+                                setCustomSport('');
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+
+                        {(venue.sports || []).filter((s: string) => !['Cricket', 'Football', 'Tennis', 'Badminton', 'Pickleball'].includes(s)).length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {(venue.sports || []).filter((s: string) => !['Cricket', 'Football', 'Tennis', 'Badminton', 'Pickleball'].includes(s)).map((s: string) => (
+                              <Badge key={s} variant="secondary" className="pl-2 pr-1 py-1 flex gap-1 items-center">
+                                {s}
+                                <X
+                                  className="h-3 w-3 cursor-pointer hover:text-destructive"
+                                  onClick={() => {
+                                    const currentSports = venue.sports || [];
+                                    setVenue({ ...venue, sports: currentSports.filter(sport => sport !== s) });
+                                  }}
+                                />
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="pricing">Base Price (₹/hour)</Label>
@@ -587,7 +734,7 @@ const EditVenue = () => {
           </Tabs>
         </motion.div>
       </main>
-    </div>
+    </div >
   );
 };
 

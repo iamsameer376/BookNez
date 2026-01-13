@@ -9,6 +9,7 @@ import { ArrowLeft, User, Mail, Lock, Phone, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { PasswordInput } from '@/components/ui/password-input';
 
 const SECURITY_QUESTIONS = [
   "What was the name of your first school?",
@@ -221,10 +222,9 @@ const RegisterOwner = () => {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                <Input
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground z-10" />
+                <PasswordInput
                   id="password"
-                  type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -237,10 +237,9 @@ const RegisterOwner = () => {
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                <Input
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground z-10" />
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}

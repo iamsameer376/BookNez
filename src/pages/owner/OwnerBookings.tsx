@@ -7,8 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Calendar, Clock, User, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfToday, startOfWeek, startOfMonth, startOfYear, endOfDay, subDays } from 'date-fns';
 import { Tables } from '@/integrations/supabase/types';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/DateRangePicker';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 type Booking = Tables<'bookings'>;
 type Venue = Tables<'venues'>;
@@ -28,8 +32,33 @@ const OwnerBookings = () => {
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Filters
+  const [filterType, setFilterType] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('week');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 7),
+    to: new Date()
+  });
+
+  const handleFilterChange = (type: 'today' | 'week' | 'month' | 'year') => {
+    setFilterType(type);
+    const now = new Date();
+    let from = now;
+
+    switch (type) {
+      case 'today': from = startOfToday(); break;
+      case 'week': from = startOfWeek(now, { weekStartsOn: 1 }); break;
+      case 'month': from = startOfMonth(now); break;
+      case 'year': from = startOfYear(now); break;
+    }
+
+    setDateRange({ from, to: endOfDay(now) });
+  };
+
   const fetchBookings = useCallback(async () => {
+    if (!user || !dateRange?.from || !dateRange?.to) return;
+
     try {
+      setLoading(true);
       // Get owner's venues
       const { data: venues, error: venuesError } = await supabase
         .from('venues')
@@ -40,29 +69,34 @@ const OwnerBookings = () => {
 
       if (!venues || venues.length === 0) {
         setLoading(false);
+        setBookings([]);
         return;
       }
 
       const venueIds = venues.map(v => v.id);
+      const fromStr = dateRange.from.toISOString();
+      const toStr = dateRange.to.toISOString();
 
-      // Get bookings for those venues
+      // Get bookings for those venues within range
       const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
+        .from('bookings' as any) // Type check workaround if needed or remove 'as any' if types are perfect
         .select('*')
         .in('venue_id', venueIds)
+        .gte('booking_date', fromStr.split('T')[0])
+        .lte('booking_date', toStr.split('T')[0])
         .order('booking_date', { ascending: false })
         .order('booking_time', { ascending: false });
 
       if (bookingsError) throw bookingsError;
 
-      // Get user profiles for booking user info
+      // Get user profiles
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', bookingsData?.map(b => b.user_id) || []);
+        .in('id', (bookingsData as any)?.map((b: any) => b.user_id) || []);
 
       // Combine data
-      const bookingsWithDetails = (bookingsData || []).map((booking) => {
+      const bookingsWithDetails = ((bookingsData as any) || []).map((booking: any) => {
         const venue = venues.find(v => v.id === booking.venue_id);
         const profile = profiles?.find(p => p.id === booking.user_id);
 
@@ -88,7 +122,7 @@ const OwnerBookings = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, dateRange]);
 
   useEffect(() => {
     if (user) {
@@ -105,15 +139,6 @@ const OwnerBookings = () => {
     return colors[status] || 'default';
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading bookings...</p>
-      </div>
-    );
-  }
-
-  // Group bookings by category
   const groupedBookings = bookings.reduce((acc, booking) => {
     const category = booking.venue_category || 'Other';
     if (!acc[category]) {
@@ -145,14 +170,70 @@ const OwnerBookings = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold mb-6">Bookings</h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <h2 className="text-3xl font-bold">Bookings</h2>
 
-        {bookings.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">No bookings yet</p>
-            </CardContent>
-          </Card>
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-card/40 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-sm">
+            <div className="flex gap-1 bg-background/50 p-1 rounded-lg border border-white/5 backdrop-blur-sm">
+              {['today', 'week', 'month', 'year'].map((t) => (
+                <Button
+                  key={t}
+                  variant="ghost"
+                  onClick={() => handleFilterChange(t as any)}
+                  className={`capitalize h-8 px-3 rounded-md transition-all ${filterType === t ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-primary/10 hover:text-primary text-muted-foreground'}`}
+                  size="sm"
+                >
+                  {t}
+                </Button>
+              ))}
+            </div>
+            <DatePickerWithRange
+              date={dateRange}
+              setDate={(range) => {
+                setFilterType('custom');
+                setDateRange(range);
+              }}
+              className="w-full sm:w-auto backdrop-blur-sm bg-background/50"
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4 rounded-full" />
+                        <div>
+                          <Skeleton className="h-5 w-48 mb-1" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-3">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : bookings.length === 0 ? (
+          <EmptyState
+            icon={Calendar}
+            title="No bookings found"
+            description="There are no bookings for the selected time period. Try adjusting your filters."
+          />
         ) : (
           <div className="space-y-8">
             {Object.entries(groupedBookings).map(([category, categoryBookings]) => (

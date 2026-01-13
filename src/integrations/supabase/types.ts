@@ -282,6 +282,7 @@ export type Database = {
           peak_hours: string[] | null
           photos: string[] | null
           pricing: number
+          sports: string[] | null
           updated_at: string
         }
         Insert: {
@@ -301,6 +302,7 @@ export type Database = {
           peak_hours?: string[] | null
           photos?: string[] | null
           pricing: number
+          sports?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -320,6 +322,7 @@ export type Database = {
           peak_hours?: string[] | null
           photos?: string[] | null
           pricing?: number
+          sports?: string[] | null
           updated_at?: string
         }
         Relationships: []

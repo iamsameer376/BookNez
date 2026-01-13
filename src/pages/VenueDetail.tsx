@@ -15,12 +15,13 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Calendar as CalendarIcon,
+  Navigation,
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Tables } from '@/integrations/supabase/types';
-
-
+import { motion } from 'framer-motion';
 
 type Venue = Tables<'venues'>;
 type VenuePricing = Tables<'venue_pricing'>;
@@ -177,7 +178,7 @@ const VenueDetail = () => {
     };
   }, [selectedDate, id, fetchBookedSlots, fetchDynamicPricing]);
 
-  // Generate time slots based on venue opening and closing times
+  // Generate time slots
   const generateTimeSlots = () => {
     if (!venue) return [];
 
@@ -185,7 +186,7 @@ const VenueDetail = () => {
       const [time, period] = timeStr.trim().split(' ');
       const [hoursStr, minutesStr] = time.split(':');
       let hours = parseInt(hoursStr);
-      const minutes = parseInt(minutesStr);
+      // const minutes = parseInt(minutesStr); // unused
 
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
@@ -208,11 +209,9 @@ const VenueDetail = () => {
       selectedDate.getMonth() === now.getMonth() &&
       selectedDate.getFullYear() === now.getFullYear();
 
-    // Get current hour + 1 for buffer (allow booking starting from next hour)
     const currentHour = isToday ? now.getHours() + 1 : -1;
 
     for (let hour = startHour; hour <= endHour; hour++) {
-      // For same-day bookings, only show future time slots
       if (!isToday || hour >= currentHour) {
         slots.push(formatTime(hour));
       }
@@ -222,7 +221,6 @@ const VenueDetail = () => {
   };
 
   const timeSlots = generateTimeSlots();
-
   const peakHours = venue?.peak_hours || ['06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM'];
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -240,20 +238,14 @@ const VenueDetail = () => {
   };
 
   const isSlotUnavailable = (time: string) => {
-    // Check if slot is frozen by owner
     const pricing = dynamicPricing.find(p => p.time_slot === time);
     if (pricing?.is_frozen) return true;
-
-    // Check if slot is already booked
     if (bookedSlots.includes(time)) return true;
-
     return false;
   };
 
   const getTotalPrice = () => {
     if (!venue?.pricing) return 500;
-
-    // venue.pricing is a number based on the type definition
     const basePrice = typeof venue.pricing === 'number' ? venue.pricing : 500;
     const isTuition = venue.category === 'tuition';
 
@@ -311,10 +303,16 @@ const VenueDetail = () => {
     });
   };
 
+  const handleGetDirections = () => {
+    if (!venue?.latitude || !venue?.longitude) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}`;
+    window.open(url, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -330,13 +328,13 @@ const VenueDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 pb-20">
+      <header className="sticky top-0 z-50 border-b bg-background/60 backdrop-blur-md transition-all">
         <div className="container mx-auto px-4 py-4">
           <Button
             variant="ghost"
             onClick={() => navigate('/dashboard/user')}
-            className="gap-2"
+            className="gap-2 hover:bg-background/80"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Venues
@@ -345,26 +343,33 @@ const VenueDetail = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8"
+        >
           {/* Left Column - Venue Details */}
           <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             {/* Image Gallery with Carousel */}
-            <Card className="overflow-hidden">
-              <div className="relative h-64 sm:h-80 lg:h-96">
+            <Card className="overflow-hidden border-none shadow-xl">
+              <div className="relative h-64 sm:h-80 lg:h-96 group">
                 <img
                   src={venue.photos[currentPhotoIndex] || '/placeholder.svg'}
                   alt={venue.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder.svg';
                   }}
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
                 {venue.photos.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => setCurrentPhotoIndex((prev) => prev === 0 ? venue.photos.length - 1 : prev - 1)}
                     >
                       <ChevronLeft className="h-6 w-6" />
@@ -372,17 +377,16 @@ const VenueDetail = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => setCurrentPhotoIndex((prev) => prev === venue.photos.length - 1 ? 0 : prev + 1)}
                     >
                       <ChevronRight className="h-6 w-6" />
                     </Button>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                       {venue.photos.map((_, idx) => (
                         <button
                           key={idx}
-                          className={`w-2 h-2 rounded-full transition-all ${idx === currentPhotoIndex ? 'bg-white w-4' : 'bg-white/50'
-                            }`}
+                          className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentPhotoIndex ? 'bg-white w-6' : 'bg-white/40 w-1.5'}`}
                           onClick={() => setCurrentPhotoIndex(idx)}
                         />
                       ))}
@@ -391,12 +395,11 @@ const VenueDetail = () => {
                 )}
               </div>
               {venue.photos.length > 1 && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-4">
-                  {venue.photos.slice(0, 4).map((photo, idx) => (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 p-2 bg-card/50 backdrop-blur-md">
+                  {venue.photos.slice(0, 5).map((photo, idx) => (
                     <div
                       key={idx}
-                      className={`relative h-20 sm:h-24 rounded-lg overflow-hidden cursor-pointer transition-all ${currentPhotoIndex === idx ? 'ring-2 ring-primary' : ''
-                        }`}
+                      className={`relative h-16 sm:h-20 rounded-md overflow-hidden cursor-pointer transition-all ${currentPhotoIndex === idx ? 'ring-2 ring-primary scale-95' : 'hover:opacity-80'}`}
                       onClick={() => setCurrentPhotoIndex(idx)}
                     >
                       <img
@@ -414,17 +417,19 @@ const VenueDetail = () => {
             </Card>
 
             {/* Venue Info */}
-            <Card>
-              <CardContent className="p-6 space-y-4">
+            <Card className="border shadow-sm bg-card/60 backdrop-blur-md">
+              <CardContent className="p-6 space-y-6">
                 <div>
-                  <h1 className="text-3xl font-bold mb-3">{venue.name}</h1>
+                  <div className="flex justify-between items-start">
+                    <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">{venue.name}</h1>
+                  </div>
                   <div className="flex flex-col gap-3">
                     <div
                       className="flex items-center gap-2 cursor-pointer w-fit hover:opacity-80 transition-opacity"
                       onClick={() => navigate(`/venues/${venue.id}/reviews`)}
                     >
-                      <div className="flex items-center gap-1 bg-accent/10 px-2 py-0.5 rounded-full">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />
+                      <div className="flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-500/20">
+                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                         <span className="font-bold text-foreground">{venueStats.average || '0.0'}</span>
                       </div>
                       <span className="text-sm text-muted-foreground underline decoration-dotted underline-offset-4">
@@ -433,17 +438,48 @@ const VenueDetail = () => {
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
 
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-5 w-5 text-red-500" />
-                      <span>{venue.address}</span>
+                    <div className="flex items-start gap-2 text-muted-foreground">
+                      <div className="p-1.5 bg-red-500/10 rounded-full shrink-0 mt-0.5">
+                        <MapPin className="h-4 w-4 text-red-500" />
+                      </div>
+                      <span className="leading-snug">{venue.address}</span>
                     </div>
+
+                    {venue.latitude && venue.longitude && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary mt-1 h-9"
+                        onClick={handleGetDirections}
+                      >
+                        <Navigation className="h-3.5 w-3.5" />
+                        Get Directions
+                      </Button>
+                    )}
                   </div>
                 </div>
 
                 {venue.description && (
                   <div>
                     <h2 className="text-xl font-semibold mb-2">About</h2>
-                    <p className="text-muted-foreground">{venue.description}</p>
+                    <p className="text-muted-foreground leading-relaxed">{venue.description}</p>
+                  </div>
+                )}
+
+                {venue.sports && venue.sports.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-3">Sports Available</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {venue.sports.map((sport) => (
+                        <Badge
+                          key={sport}
+                          variant="default"
+                          className="flex items-center gap-1.5 px-3 py-1"
+                        >
+                          {sport}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -454,9 +490,9 @@ const VenueDetail = () => {
                       <Badge
                         key={amenity}
                         variant="secondary"
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1.5 px-3 py-1 bg-secondary/30 hover:bg-secondary/50 transition-colors"
                       >
-                        <CheckCircle2 className="h-3 w-3" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                         {amenity}
                       </Badge>
                     ))}
@@ -465,137 +501,148 @@ const VenueDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Time Slots or Months - Only show after date is selected */}
+            {/* Time Slots */}
             {showTimeSlots && venue?.category !== 'tuition' && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-4">Select Time Slots (Multiple allowed)</h2>
-                  <p className="text-sm text-muted-foreground mb-4">Click multiple slots to book them together</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {timeSlots.map((time) => {
-                      const isPeak = peakHours.includes(time);
-                      const isSelected = selectedTimes.includes(time);
-                      const isUnavailable = isSlotUnavailable(time);
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border shadow-sm bg-card/60 backdrop-blur-md">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-2">Select Time Slots</h2>
+                    <p className="text-sm text-muted-foreground mb-6">You can select multiple slots to create a longer booking.</p>
 
-                      return (
-                        <Button
-                          key={time}
-                          variant={isSelected ? 'default' : 'outline'}
-                          className={`relative ${isUnavailable ? 'opacity-50 cursor-not-allowed bg-muted' : ''}`}
-                          onClick={() => handleTimeSelect(time)}
-                          disabled={isUnavailable}
-                        >
-                          <div className="text-center">
-                            <div className="font-semibold text-xs">{time}</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {timeSlots.map((time) => {
+                        const isPeak = peakHours.includes(time);
+                        const isSelected = selectedTimes.includes(time);
+                        const isUnavailable = isSlotUnavailable(time);
+
+                        return (
+                          <Button
+                            key={time}
+                            variant={isSelected ? 'default' : 'outline'}
+                            className={`
+                                relative h-auto py-3 flex flex-col gap-1 border-2 transition-all
+                                ${isSelected ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' : 'hover:border-primary/50'}
+                                ${isUnavailable ? 'opacity-40 cursor-not-allowed bg-muted hover:bg-muted hover:border-border' : ''}
+                              `}
+                            onClick={() => handleTimeSelect(time)}
+                            disabled={isUnavailable}
+                          >
+                            <span className="font-semibold text-sm">{time}</span>
                             {isPeak && !isUnavailable && (
-                              <div className="text-xs">Peak</div>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 font-medium">Peak</span>
                             )}
                             {isUnavailable && (
-                              <div className="text-xs text-destructive">Booked</div>
+                              <span className="text-[10px] font-medium">Booked</span>
                             )}
-                          </div>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
           </div>
 
           {/* Right Column - Booking Card */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-24">
-              <CardContent className="p-6 space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 text-3xl font-bold">
-                    <IndianRupee className="h-6 w-6" />
-                    {getTotalPrice()}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {venue?.category === 'tuition' ? '/month' : '/slot'}
+            <div className="sticky top-24">
+              <Card className="border shadow-xl bg-card/80 backdrop-blur-md">
+                <CardContent className="p-6 space-y-6">
+                  <div className="text-center p-4 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
+                    <div className="flex items-center justify-center gap-1 text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                      <IndianRupee className="h-7 w-7 text-primary" />
+                      {getTotalPrice()}
+                    </div>
+                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                      {venue?.category === 'tuition' ? 'per month' : 'total price'}
                     </span>
                   </div>
-                  {selectedTimes.length > 1 && (
-                    <Badge variant="secondary" className="mt-2">
-                      {selectedTimes.length} slots selected
-                    </Badge>
+
+                  {selectedTimes.length > 0 && (
+                    <div className="flex justify-between items-center px-2">
+                      <span className="text-sm text-muted-foreground">{selectedTimes.length} slots selected</span>
+                      <Badge variant="outline" className="border-primary/20 text-primary cursor-pointer hover:bg-primary/5" onClick={() => { setSelectedTimes([]); setSelectedDate(undefined); }}>Reset</Badge>
+                    </div>
                   )}
-                </div>
 
-                {venue?.category === 'tuition' && showTimeSlots && (
-                  <div>
-                    <Label className="text-sm font-semibold mb-2 block">Number of Months</Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMonthsCount(Math.max(1, monthsCount - 1))}
-                      >
-                        -
-                      </Button>
-                      <span className="text-lg font-semibold w-12 text-center">{monthsCount}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMonthsCount(Math.min(12, monthsCount + 1))}
-                      >
-                        +
-                      </Button>
+                  {venue?.category === 'tuition' && showTimeSlots && (
+                    <div className="bg-secondary/20 p-4 rounded-lg">
+                      <Label className="text-sm font-semibold mb-3 block">Duration (Months)</Label>
+                      <div className="flex items-center justify-between bg-background rounded-md border p-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setMonthsCount(Math.max(1, monthsCount - 1))}
+                        >
+                          -
+                        </Button>
+                        <span className="text-lg font-bold w-12 text-center">{monthsCount}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setMonthsCount(Math.min(12, monthsCount + 1))}
+                        >
+                          +
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Total: ₹{getTotalPrice()} for {monthsCount} month(s)
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                {!showTimeSlots && (
-                  <div>
-                    <h3 className="font-semibold mb-3">Select Date First</h3>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      disabled={(date) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const compareDate = new Date(date);
-                        compareDate.setHours(0, 0, 0, 0);
-                        return compareDate < today;
-                      }}
-                      className="rounded-md border"
-                    />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Choose a date to see available time slots
-                    </p>
-                  </div>
-                )}
-
-                {selectedTimes.length > 0 && (
-                  <div className="p-4 bg-secondary/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <Clock className="h-4 w-4" />
-                      <span className="font-semibold">Selected Slots:</span>
+                  {!showTimeSlots && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        <h3 className="font-semibold">Select Date</h3>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={handleDateSelect}
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const compareDate = new Date(date);
+                          compareDate.setHours(0, 0, 0, 0);
+                          return compareDate < today;
+                        }}
+                        className="rounded-lg border bg-background/50 shadow-sm w-full flex justify-center"
+                      />
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedTimes.map(time => (
-                        <Badge key={time} variant="secondary">{time}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleBookNow}
-                  disabled={!selectedDate || (venue?.category !== 'tuition' && selectedTimes.length === 0)}
-                >
-                  Book Now
-                </Button>
-              </CardContent>
-            </Card>
+                  {selectedTimes.length > 0 && (
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                      <div className="flex items-center gap-2 text-sm mb-3 text-primary font-medium">
+                        <Clock className="h-4 w-4" />
+                        <span>Selected Slots</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedTimes.map(time => (
+                          <Badge key={time} variant="secondary" className="bg-background/80 shadow-sm border">{time}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    className="w-full h-12 text-lg shadow-lg shadow-primary/20"
+                    size="lg"
+                    onClick={handleBookNow}
+                    disabled={!selectedDate || (venue?.category !== 'tuition' && selectedTimes.length === 0)}
+                  >
+                    Book Now
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </main>
     </div>
   );

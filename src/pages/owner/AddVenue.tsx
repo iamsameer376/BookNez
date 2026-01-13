@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Upload, X, Loader2 } from 'lucide-react';
 import { generateTimeOptions } from '@/utils/timeOptions';
 import { TablesInsert } from '@/integrations/supabase/types';
+import { LocationPicker } from '@/components/LocationPicker';
 
 const AddVenue = () => {
   const { user } = useAuth();
@@ -34,7 +36,10 @@ const AddVenue = () => {
     longitude: '',
     openingTime: '06:00 AM',
     closingTime: '11:00 PM',
+    sports: [] as string[],
   });
+
+  const [customSport, setCustomSport] = useState("");
 
   const amenitiesList = [
     'Parking', 'WiFi', 'Air Conditioning', 'Locker Room',
@@ -89,6 +94,7 @@ const AddVenue = () => {
   const validateStep = () => {
     switch (step) {
       case 1:
+        if (formData.category === 'turf' && formData.sports.length === 0) return false;
         return formData.name && formData.description && formData.address && formData.category;
       case 2:
         return selectedImages.length >= 1;
@@ -182,6 +188,7 @@ const AddVenue = () => {
         category: formData.category,
         pricing: parseFloat(formData.pricing),
         amenities: formData.amenities,
+        sports: formData.sports,
         latitude: formData.latitude ? parseFloat(formData.latitude) : null,
         longitude: formData.longitude ? parseFloat(formData.longitude) : null,
         opening_time: formData.openingTime,
@@ -267,6 +274,89 @@ const AddVenue = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Sports Selection (Only for Turf) */}
+                {formData.category === 'turf' && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <Label className="text-base font-semibold">Available Sports / Games *</Label>
+                    <p className="text-sm text-muted-foreground">Select the sports available at your turf.</p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {['Cricket', 'Football', 'Tennis', 'Badminton', 'Pickleball'].map((sport) => (
+                        <div
+                          key={sport}
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              sports: prev.sports.includes(sport)
+                                ? prev.sports.filter(s => s !== sport)
+                                : [...prev.sports, sport]
+                            }));
+                          }}
+                          className={`
+                            cursor-pointer px-4 py-2 rounded-full border transition-all select-none text-sm
+                            ${formData.sports.includes(sport)
+                              ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                              : 'bg-background hover:bg-secondary/50 border-input'}
+                          `}
+                        >
+                          {sport}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 items-center max-w-sm">
+                      <Input
+                        placeholder="Add other sport..."
+                        value={customSport}
+                        onChange={(e) => setCustomSport(e.target.value)}
+                        className="h-9"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (customSport.trim()) {
+                              setFormData(prev => ({
+                                ...prev,
+                                sports: [...prev.sports, customSport.trim()]
+                              }));
+                              setCustomSport('');
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          if (customSport.trim()) {
+                            setFormData(prev => ({
+                              ...prev,
+                              sports: [...prev.sports, customSport.trim()]
+                            }));
+                            setCustomSport('');
+                          }
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+
+                    {formData.sports.filter(s => !['Cricket', 'Football', 'Tennis', 'Badminton', 'Pickleball'].includes(s)).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.sports.filter(s => !['Cricket', 'Football', 'Tennis', 'Badminton', 'Pickleball'].includes(s)).map(s => (
+                          <Badge key={s} variant="secondary" className="pl-2 pr-1 py-1 flex gap-1 items-center">
+                            {s}
+                            <X
+                              className="h-3 w-3 cursor-pointer hover:text-destructive"
+                              onClick={() => setFormData(prev => ({ ...prev, sports: prev.sports.filter(sport => sport !== s) }))}
+                            />
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div>
                   <Label>Description *</Label>
                   <Textarea
@@ -277,35 +367,33 @@ const AddVenue = () => {
                   />
                 </div>
                 <div>
-                  <Label>Address *</Label>
+                  <Label>Location & Address *</Label>
+                  <div className="mb-4">
+                    <LocationPicker
+                      onLocationSelect={(loc) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          address: loc.address,
+                          latitude: loc.lat.toString(),
+                          longitude: loc.lng.toString()
+                        }));
+                      }}
+                      initialLocation={
+                        formData.latitude && formData.longitude
+                          ? { lat: parseFloat(formData.latitude), lng: parseFloat(formData.longitude) }
+                          : null
+                      }
+                    />
+                  </div>
                   <Textarea
                     value={formData.address}
                     onChange={(e) => handleInputChange('address', e.target.value)}
                     placeholder="Full address (Street, Area, City)..."
                     rows={2}
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Latitude (optional)</Label>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={formData.latitude}
-                      onChange={(e) => handleInputChange('latitude', e.target.value)}
-                      placeholder="0.000000"
-                    />
-                  </div>
-                  <div>
-                    <Label>Longitude (optional)</Label>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={formData.longitude}
-                      onChange={(e) => handleInputChange('longitude', e.target.value)}
-                      placeholder="0.000000"
-                    />
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You can finetune the address after selecting from map.
+                  </p>
                 </div>
               </div>
             )}
@@ -408,21 +496,23 @@ const AddVenue = () => {
 
             {/* Step 4: Amenities */}
             {step === 4 && (
-              <div className="space-y-4">
-                <Label>Select Amenities *</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  {amenitiesList.map((amenity) => (
-                    <div key={amenity} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={amenity}
-                        checked={formData.amenities.includes(amenity)}
-                        onCheckedChange={() => handleAmenityToggle(amenity)}
-                      />
-                      <label htmlFor={amenity} className="text-sm cursor-pointer select-none">
-                        {amenity}
-                      </label>
-                    </div>
-                  ))}
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <Label className="text-lg font-semibold">Amenities *</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {amenitiesList.map((amenity) => (
+                      <div key={amenity} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={amenity}
+                          checked={formData.amenities.includes(amenity)}
+                          onCheckedChange={() => handleAmenityToggle(amenity)}
+                        />
+                        <label htmlFor={amenity} className="text-sm cursor-pointer select-none">
+                          {amenity}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

@@ -25,6 +25,7 @@ const MyProfile = lazy(() => import("./pages/MyProfile"));
 const VenuesList = lazy(() => import("./pages/VenuesList"));
 const EditVenue = lazy(() => import("./pages/owner/EditVenue"));
 const OwnerBookings = lazy(() => import("./pages/owner/OwnerBookings"));
+const OwnerRevenue = lazy(() => import("./pages/owner/OwnerRevenue"));
 const OwnerReviews = lazy(() => import("./pages/owner/OwnerReviews"));
 const QRScanner = lazy(() => import("./pages/owner/QRScanner"));
 const BookingConfirm = lazy(() => import("./pages/BookingConfirm"));
@@ -57,6 +58,7 @@ const AppContent = () => {
             <Route path="/owner/venues" element={<ManageVenues />} />
             <Route path="/owner/venues/:id" element={<EditVenue />} />
             <Route path="/owner/bookings" element={<OwnerBookings />} />
+            <Route path="/owner/revenue" element={<OwnerRevenue />} />
             <Route path="/owner/reviews" element={<OwnerReviews />} />
             <Route path="/owner/scan" element={<QRScanner />} />
             <Route path="/venues/:id" element={<VenueDetail />} />
@@ -81,7 +83,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="theme">
+    <ThemeProvider defaultTheme="system" storageKey="theme">
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
