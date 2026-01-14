@@ -20,8 +20,9 @@ import {
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
-import { Tables } from '@/integrations/supabase/types';
+import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { Tables } from '@/integrations/supabase/types';
 
 type Venue = Tables<'venues'>;
 type VenuePricing = Tables<'venue_pricing'>;
@@ -88,7 +89,7 @@ const VenueDetail = () => {
     if (!selectedDate || !id) return;
 
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const { data, error } = await supabase
         .from('bookings')
         .select('booking_time')
@@ -107,7 +108,8 @@ const VenueDetail = () => {
     if (!selectedDate || !id) return;
 
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      console.log('Fetching pricing for:', dateStr, 'Venue:', id); // DEBUG
       const { data, error } = await supabase
         .from('venue_pricing')
         .select('*')
@@ -115,6 +117,7 @@ const VenueDetail = () => {
         .eq('date', dateStr);
 
       if (error) throw error;
+      console.log('Fetched pricing data:', data); // DEBUG
       setDynamicPricing(data || []);
     } catch (error: any) {
       console.error('Error fetching pricing:', error);
@@ -143,7 +146,7 @@ const VenueDetail = () => {
   useEffect(() => {
     if (!selectedDate || !id) return;
 
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
     const channel = supabase
       .channel(`venue_${id}_${dateStr}`)
@@ -171,6 +174,22 @@ const VenueDetail = () => {
           fetchDynamicPricing();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'venues',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          // Optimistically update or refetch
+          // Payload.new contains the new row data
+          if (payload.new) {
+            setVenue(payload.new as Venue);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
@@ -183,10 +202,16 @@ const VenueDetail = () => {
     if (!venue) return [];
 
     const parseTime = (timeStr: string) => {
-      const [time, period] = timeStr.trim().split(' ');
-      const [hoursStr, minutesStr] = time.split(':');
+      const trimmed = timeStr.trim();
+      // Handle 24h format (e.g., "14:00")
+      if (!trimmed.includes('AM') && !trimmed.includes('PM')) {
+        const [hoursStr] = trimmed.split(':');
+        return parseInt(hoursStr);
+      }
+      // Handle 12h format
+      const [time, period] = trimmed.split(' ');
+      const [hoursStr] = time.split(':');
       let hours = parseInt(hoursStr);
-      // const minutes = parseInt(minutesStr); // unused
 
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
@@ -209,16 +234,38 @@ const VenueDetail = () => {
       selectedDate.getMonth() === now.getMonth() &&
       selectedDate.getFullYear() === now.getFullYear();
 
-    const currentHour = isToday ? now.getHours() + 1 : -1;
+    const currentHour = isToday ? (now.getMinutes() > 30 ? now.getHours() + 1 : now.getHours()) : -1;
 
-    for (let hour = startHour; hour <= endHour; hour++) {
+    // Helper to add slot if valid
+    const addSlotIfValid = (hour: number) => {
+      // For cross-midnight, "next day" hours on "today" selection needs careful handling?
+      // Actually, physically:
+      // If venue is 11PM to 2AM.
+      // On "Jan 14", slots are: 11PM, 12AM (technically Jan 15), 1AM, 2AM.
+      // In this simple model, we usually treating 0, 1, 2 as "late night" of the selected day.
+
       if (!isToday || hour >= currentHour) {
         slots.push(formatTime(hour));
+      }
+    };
+
+    if (startHour <= endHour) {
+      for (let hour = startHour; hour <= endHour; hour++) {
+        addSlotIfValid(hour);
+      }
+    } else {
+      // Cross midnight
+      for (let hour = startHour; hour <= 23; hour++) {
+        addSlotIfValid(hour);
+      }
+      for (let hour = 0; hour <= endHour; hour++) {
+        addSlotIfValid(hour);
       }
     }
 
     return slots;
   };
+
 
   const timeSlots = generateTimeSlots();
   const peakHours = venue?.peak_hours || ['06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM'];
@@ -239,6 +286,7 @@ const VenueDetail = () => {
 
   const isSlotUnavailable = (time: string) => {
     const pricing = dynamicPricing.find(p => p.time_slot === time);
+    // console.log(`Checking slot ${time}:`, pricing); // DEBUG verbose
     if (pricing?.is_frozen) return true;
     if (bookedSlots.includes(time)) return true;
     return false;
@@ -486,7 +534,7 @@ const VenueDetail = () => {
                 <div>
                   <h2 className="text-xl font-semibold mb-3">Facilities</h2>
                   <div className="flex flex-wrap gap-2">
-                    {venue.amenities.map((amenity) => (
+                    {((venue as any).amenities || []).map((amenity: string) => (
                       <Badge
                         key={amenity}
                         variant="secondary"
@@ -518,12 +566,21 @@ const VenueDetail = () => {
                         const isSelected = selectedTimes.includes(time);
                         const isUnavailable = isSlotUnavailable(time);
 
+                        // Calculate price for this specific slot
+                        let price = venue?.pricing || 500;
+                        const dynamicPrice = dynamicPricing.find(p => p.time_slot === time);
+                        if (dynamicPrice) {
+                          price = dynamicPrice.price;
+                        } else if (isPeak) {
+                          price = price * 1.5;
+                        }
+
                         return (
                           <Button
                             key={time}
                             variant={isSelected ? 'default' : 'outline'}
                             className={`
-                                relative h-auto py-3 flex flex-col gap-1 border-2 transition-all
+                                relative h-auto py-3 flex flex-col gap-1 border-2 transition-all p-2
                                 ${isSelected ? 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' : 'hover:border-primary/50'}
                                 ${isUnavailable ? 'opacity-40 cursor-not-allowed bg-muted hover:bg-muted hover:border-border' : ''}
                               `}
@@ -531,11 +588,12 @@ const VenueDetail = () => {
                             disabled={isUnavailable}
                           >
                             <span className="font-semibold text-sm">{time}</span>
+                            <span className="text-xs font-medium opacity-80">₹{price}</span>
                             {isPeak && !isUnavailable && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 font-medium">Peak</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 font-medium absolute -top-2 -right-2 border border-orange-200 bg-white">Peak</span>
                             )}
                             {isUnavailable && (
-                              <span className="text-[10px] font-medium">Booked</span>
+                              <span className="text-[10px] font-medium text-destructive">Booked</span>
                             )}
                           </Button>
                         );

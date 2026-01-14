@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, User, PlusCircle, QrCode, Heart } from 'lucide-react';
+import { Home, Calendar, User, PlusCircle, QrCode, Heart, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -11,7 +11,7 @@ const MobileNav = () => {
 
     const ownerLinks = [
         { href: '/owner/bookings', label: 'Bookings', icon: Calendar },
-        { href: '/owner/add-venue', label: 'Add', icon: PlusCircle },
+        { href: '/owner/venues', label: 'Freeze', icon: Lock },
         { href: '/dashboard/owner', label: 'Home', icon: Home, isCenter: true },
         { href: '/owner/scan', label: 'Scan', icon: QrCode },
         { href: '/profile', label: 'Profile', icon: User },

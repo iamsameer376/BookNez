@@ -40,6 +40,7 @@ const AddVenue = () => {
   });
 
   const [customSport, setCustomSport] = useState("");
+  const [customAmenity, setCustomAmenity] = useState("");
 
   const amenitiesList = [
     'Parking', 'WiFi', 'Air Conditioning', 'Locker Room',
@@ -99,7 +100,7 @@ const AddVenue = () => {
       case 2:
         return selectedImages.length >= 1;
       case 3:
-        return formData.pricing && parseFloat(formData.pricing) > 0;
+        return formData.pricing && parseFloat(formData.pricing) > 50;
       case 4:
         return formData.amenities.length > 0;
       case 5:
@@ -457,9 +458,29 @@ const AddVenue = () => {
                   <Input
                     type="number"
                     value={formData.pricing}
-                    onChange={(e) => handleInputChange('pricing', e.target.value)}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && val <= 50) {
+                        // Allow typing but show error potentially? 
+                        // Or just handle on blur. For simplicity in form, we update state
+                        // but will block submit if invalid.
+                      }
+                      handleInputChange('pricing', e.target.value)
+                    }}
+                    onBlur={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (val <= 50) {
+                        toast({
+                          title: "Price too low",
+                          description: "Minimum price must be ₹51",
+                          variant: "destructive"
+                        });
+                        // Optionally reset or leave for them to fix
+                      }
+                    }}
                     placeholder="1000"
-                    min="0"
+                    min="51"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     Enter base price in INR.
@@ -512,6 +533,52 @@ const AddVenue = () => {
                         </label>
                       </div>
                     ))}
+                  </div>
+
+                  {/* CUSTOM AMENITIES */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <Label>Custom Amenities</Label>
+                    <div className="flex gap-2 max-w-sm">
+                      <Input
+                        placeholder="Add other amenity (e.g. Sauna)..."
+                        value={customAmenity}
+                        onChange={(e) => setCustomAmenity(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (customAmenity.trim()) {
+                              handleAmenityToggle(customAmenity.trim());
+                              setCustomAmenity('');
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          if (customAmenity.trim()) {
+                            handleAmenityToggle(customAmenity.trim());
+                            setCustomAmenity('');
+                          }
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+
+                    {/* Display Custom Amenities Chips */}
+                    <div className="flex flex-wrap gap-2">
+                      {formData.amenities.filter(a => !amenitiesList.includes(a)).map(a => (
+                        <Badge key={a} variant="secondary" className="pl-2 pr-1 py-1 flex gap-1 items-center">
+                          {a}
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-destructive"
+                            onClick={() => handleAmenityToggle(a)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
