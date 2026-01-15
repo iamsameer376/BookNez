@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/theme-provider";
 import MobileNav from "@/components/MobileNav";
 import { Loading } from "@/components/Loading";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { FavoritesProvider } from "./hooks/useFavorites";
 
 // Lazy load pages for performance
@@ -44,6 +45,7 @@ const AppContent = () => {
   return (
     <>
       <div className={`min-h-screen bg-background text-foreground transition-colors duration-200 ${!isAuthPage ? 'pb-20' : ''}`}>
+        <OfflineBanner />
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Index />} />

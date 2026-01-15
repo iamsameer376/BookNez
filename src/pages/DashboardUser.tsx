@@ -116,7 +116,10 @@ const DashboardUser = () => {
               <div className="flex items-center justify-between w-full md:w-auto">
                 <div className="flex items-center gap-4">
                   <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer">
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
+                    <div className="flex flex-col">
+                      <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">BookNex</h1>
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">User Dashboard</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5 text-sm py-1 px-3 bg-secondary/10 rounded-full border border-secondary/20 hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => getLocation && getLocation()}>
                     <MapPin className={`h-3.5 w-3.5 ${userGeoLocation.error ? 'text-destructive' : 'text-primary'}`} />

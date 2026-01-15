@@ -117,8 +117,14 @@ export const LocationPicker = ({ onLocationSelect, initialLocation }: LocationPi
             },
             (err) => {
                 setLoading(false);
-                toast({ title: "Error", description: "Could not retrieve location", variant: "destructive" });
-            }
+                let message = "Could not retrieve location";
+                if (err.code === 1) message = "Location permission denied";
+                if (err.code === 2) message = "Location unavailable. Please check your GPS.";
+                if (err.code === 3) message = "Location request timed out. Please retry.";
+
+                toast({ title: "Error", description: message, variant: "destructive" });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +21,11 @@ const AddVenue = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [formData, setFormData] = useState({

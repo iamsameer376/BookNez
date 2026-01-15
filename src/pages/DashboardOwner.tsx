@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Building2, Calendar, DollarSign, QrCode, Settings, Star, ChevronRight } from 'lucide-react';
+import { Plus, Building2, Calendar, IndianRupee, QrCode, Settings, Star, ChevronRight, MapPin } from 'lucide-react';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
+
 import { motion } from 'framer-motion';
 import { SettingsMenu } from '@/components/SettingsMenu';
 import { isToday, parseISO } from 'date-fns';
@@ -26,7 +28,8 @@ const item = {
 };
 
 const DashboardOwner = () => {
-  const { user, userRoles, userName, loading } = useAuth();
+  const { user, userRoles, userName, userCity, loading } = useAuth();
+  const { location: userGeoLocation, getLocation } = useGeoLocation();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
@@ -106,13 +109,30 @@ const DashboardOwner = () => {
     <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 pb-20">
       <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10 transition-all duration-300">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <motion.h1
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary"
+            className="flex flex-col"
           >
-            BookNex Owner
-          </motion.h1>
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
+              BookNex
+            </h1>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
+              Venue Owner
+            </span>
+          </motion.div>
+
+          <div className="flex items-center gap-1.5 text-sm py-1 px-3 bg-secondary/10 rounded-full border border-secondary/20 hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => getLocation && getLocation()}>
+            <MapPin className={`h-3.5 w-3.5 ${userGeoLocation.error ? 'text-destructive' : 'text-primary'}`} />
+            <span className="font-medium truncate max-w-[120px] md:max-w-[200px]">
+              {!userGeoLocation.loaded
+                ? 'Locating...'
+                : userGeoLocation.error
+                  ? 'Locate Me'
+                  : (userGeoLocation.city || userCity || 'Select Location')}
+            </span>
+          </div>
+
           <SettingsMenu />
         </div>
       </header>
@@ -169,7 +189,7 @@ const DashboardOwner = () => {
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </CardTitle>
                 <div className="p-2 bg-secondary/10 rounded-full">
-                  <DollarSign className="h-4 w-4 text-secondary" />
+                  <IndianRupee className="h-4 w-4 text-secondary" />
                 </div>
               </CardHeader>
               <CardContent>

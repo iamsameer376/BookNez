@@ -434,20 +434,58 @@ const EditVenue = () => {
   };
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0 || !venue || !user?.id) return;
 
-    // DEMO
-    const placeholderImg = 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80';
-    const updatedPhotos = [...(venue?.photos || []), placeholderImg];
+    // Validate
+    const validFiles = files.filter(file => file.size <= 5 * 1024 * 1024 && file.type.startsWith('image/'));
+    if (validFiles.length < files.length) {
+      toast({ title: "Warning", description: "Some files skipped (invalid type or >5MB)", variant: "destructive" });
+    }
+    if (validFiles.length === 0) return;
 
-    if (venue) setVenue({ ...venue, photos: updatedPhotos });
+    toast({ title: "Uploading...", description: "Please wait while we upload your photos." });
 
-    const { error } = await supabase.from('venues').update({ photos: updatedPhotos }).eq('id', id as string);
-    if (error) {
-      toast({ title: 'Error adding photo', variant: 'destructive' });
-    } else {
-      toast({ title: 'Photo added (Demo)', description: 'Storage implementation required for real uploads.' });
+    const newUrls: string[] = [];
+
+    for (const file of validFiles) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('venue_photos')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('venue_photos')
+        .getPublicUrl(filePath);
+
+      newUrls.push(publicUrl);
+    }
+
+    if (newUrls.length > 0) {
+      const updatedPhotos = [...(venue.photos || []), ...newUrls];
+      setVenue({ ...venue, photos: updatedPhotos });
+
+      const { error } = await supabase
+        .from('venues')
+        .update({ photos: updatedPhotos })
+        .eq('id', id as string);
+
+      if (error) {
+        console.error(error);
+        toast({ title: 'Error saving photos', variant: 'destructive' });
+        fetchVenue(); // Revert on error
+      } else {
+        toast({ title: 'Success', description: 'Photos uploaded successfully' });
+      }
     }
   };
 
