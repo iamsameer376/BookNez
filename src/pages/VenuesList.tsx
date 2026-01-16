@@ -202,11 +202,11 @@ const VenuesList = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-              <div className="relative w-full sm:w-64">
+            <div className="flex flex-row items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 sm:w-64 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Filter results..."
+                  placeholder="Filter..."
                   className="pl-9 h-10 bg-card border-none shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
                   value={searchQuery}
                   onChange={(e) => handleLocalSearch(e.target.value)}

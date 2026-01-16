@@ -118,7 +118,12 @@ const DashboardUser = () => {
                 <div className="flex items-center gap-4">
                   <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer">
                     <div className="flex flex-col">
-                      <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">BookNex</h1>
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">BookNex</h1>
+                        <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
+                          Beta
+                        </span>
+                      </div>
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">User Dashboard</span>
                     </div>
                   </div>

@@ -106,7 +106,12 @@ const LoginOwner = () => {
           </Link>
 
           <div className="space-y-2 text-center">
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
+            <div className="flex items-center justify-center gap-3">
+              <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
+              <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-xs font-bold text-primary tracking-widest uppercase shadow-sm">
+                Beta
+              </span>
+            </div>
             <h2 className="text-2xl font-semibold text-foreground">Owner Login</h2>
             <p className="text-muted-foreground">Sign in to manage your venue</p>
           </div>

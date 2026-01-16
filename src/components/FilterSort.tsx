@@ -26,7 +26,8 @@ export const FilterSort = ({ onSort, currentSort }: FilterSortProps) => {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="gap-2">
             <ArrowUpDown className="h-4 w-4" />
-            Sort by: {sortOptions.find(opt => opt.value === currentSort)?.label}
+            <span className="hidden sm:inline">Sort by: </span>
+            {sortOptions.find(opt => opt.value === currentSort)?.label}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 bg-background">
