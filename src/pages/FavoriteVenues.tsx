@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Heart } from 'lucide-react';
 import { VenueCard } from '@/components/VenueCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import { calculateDistance } from '@/utils/distance';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 const FavoriteVenues = () => {
     const navigate = useNavigate();
@@ -14,6 +16,7 @@ const FavoriteVenues = () => {
     const { favorites, loading: loadingFavorites } = useFavorites();
     const [favoriteVenues, setFavoriteVenues] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const { location } = useGeoLocation();
 
     useEffect(() => {
         const fetchFavoriteVenues = async () => {
@@ -113,7 +116,16 @@ const FavoriteVenues = () => {
                                         image={venue.photos[0] || '/placeholder.svg'}
                                         rating={venue.average_rating || 0}
                                         price={Number(venue.pricing)}
-                                        distance={2.5}
+                                        distance={
+                                            location.loaded && location.coordinates
+                                                ? calculateDistance(
+                                                    location.coordinates.lat,
+                                                    location.coordinates.lng,
+                                                    venue.latitude || 0,
+                                                    venue.longitude || 0
+                                                )
+                                                : null
+                                        }
                                         category={venue.category}
                                         amenities={venue.amenities.slice(0, 3)}
                                     />

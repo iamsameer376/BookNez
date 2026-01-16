@@ -4,8 +4,7 @@ import { VenueCard } from './VenueCard';
 import 'leaflet/dist/leaflet.css';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { useEffect } from 'react';
-import { MapPin } from 'lucide-react';
-import ReactDOMServer from 'react-dom/server';
+import { calculateDistance } from '@/utils/distance';
 
 // Fix for default Leaflet icons in some bundlers
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -115,7 +114,16 @@ export const VenueMap = ({ venues, center = [12.9716, 77.5946] }: VenueMapProps)
                                     image={venue.photos[0]}
                                     rating={venue.average_rating}
                                     price={Number(venue.pricing)}
-                                    distance={0} // Distance needs calc if important in popup
+                                    distance={
+                                        userLocation.loaded && userLocation.coordinates
+                                            ? calculateDistance(
+                                                userLocation.coordinates.lat,
+                                                userLocation.coordinates.lng,
+                                                venue.latitude || 0,
+                                                venue.longitude || 0
+                                            )
+                                            : null
+                                    }
                                     category={venue.category}
                                     amenities={venue.amenities}
                                 />

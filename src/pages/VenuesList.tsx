@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,10 +11,13 @@ import { Tables } from '@/integrations/supabase/types';
 import PageTransition from '@/components/PageTransition';
 import { motion } from 'framer-motion';
 import { VenueMap } from '@/components/VenueMap';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
+import { calculateDistance } from '@/utils/distance';
 
 type Venue = Tables<'venues'> & {
   average_rating: number;
   review_count: number;
+  distance?: number;
 };
 
 const VenuesList = () => {
@@ -22,14 +25,15 @@ const VenuesList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const category = searchParams.get('category');
   const initialSearch = searchParams.get('search') || '';
+  const { location } = useGeoLocation();
 
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
   const [loadingVenues, setLoadingVenues] = useState(false);
   const [sortBy, setSortBy] = useState('distance');
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
+  // Fetch venues from Supabase
   const fetchVenues = useCallback(async () => {
     setLoadingVenues(true);
     try {
@@ -42,60 +46,111 @@ const VenuesList = () => {
         query = query.or(`category.eq.${category},category.eq.sports_${category}`);
       }
 
-      if (initialSearch) {
-        query = query.ilike('name', `%${initialSearch}%`);
-      }
+      // We fetch all matching venues and do text search on client side to avoid conflicts
+      // But if there is an initial search from dashboard, we can use it to pre-fill
+      // Actually, let's just fetch all mostly matching the category and handle specific text search in client
+      // forcing a broader fetch allows for smoother client-side filtering.
+      // However, for performance on huge sets, server side is better.
+      // Given the current scale, client side filter of a few hundred venues is fine.
 
       const { data, error } = await query;
 
       if (error) throw error;
       setVenues(data as any || []);
-      setFilteredVenues(data as any || []);
     } catch (error) {
       console.error('Error fetching venues:', error);
     } finally {
       setLoadingVenues(false);
     }
-  }, [category, initialSearch]);
+  }, [category]);
 
   useEffect(() => {
     fetchVenues();
   }, [fetchVenues]);
 
+  // Sync valid search query to URL if meaningful, mainly for sharability, 
+  // but let's keep it simple and just manage local state for now unless it was from nav.
+  useEffect(() => {
+    if (initialSearch && venues.length > 0 && searchQuery === '') {
+      setSearchQuery(initialSearch);
+    }
+  }, [initialSearch, venues.length]);
+
+
+  // Computed property: Processed Venues (Filtered & Sorted)
+  const processedVenues = useMemo(() => {
+    let result = [...venues];
+
+    // 1. Filter by Search Query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(venue =>
+        venue.name?.toLowerCase().includes(query) ||
+        venue.description?.toLowerCase().includes(query) ||
+        venue.address?.toLowerCase().includes(query)
+      );
+    }
+
+    // 2. Calculate Distances (if location available)
+    if (location.loaded && location.coordinates) {
+      result = result.map(v => ({
+        ...v,
+        distance: calculateDistance(
+          location.coordinates!.lat,
+          location.coordinates!.lng,
+          v.latitude || 0,
+          v.longitude || 0
+        )
+      }));
+    }
+
+    // 3. Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'distance':
+          // If distance is available, sort by it. Else, push to bottom or keep original.
+          if (a.distance !== undefined && b.distance !== undefined) {
+            return a.distance - b.distance;
+          }
+          if (a.distance !== undefined) return -1;
+          if (b.distance !== undefined) return 1;
+          return 0;
+
+        case 'price-low':
+          // Access pricing. Assuming it's a number or can be cast.
+          // Note: Pricing might be complex object in some schemas, but based on VenueCard usage it seems to be treated as number.
+          // The Venue type says 'pricing: any', but code often does Number(venue.pricing).
+          return (Number(a.pricing) || 0) - (Number(b.pricing) || 0);
+
+        case 'price-high':
+          return (Number(b.pricing) || 0) - (Number(a.pricing) || 0);
+
+        case 'rating':
+          return (b.average_rating || 0) - (a.average_rating || 0);
+
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [venues, searchQuery, sortBy, location]);
+
+
   const handleLocalSearch = (query: string) => {
     setSearchQuery(query);
-    const filtered = venues.filter(venue =>
-      venue.name.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredVenues(filtered);
   };
 
   const clearSearch = () => {
     setSearchQuery('');
-    setFilteredVenues(venues);
-    if (!category) {
-      setSearchParams({});
-    } else {
-      setSearchParams({ category });
-    }
   };
 
   const handleSort = (sortType: string) => {
     setSortBy(sortType);
-    if (sortType === 'price_asc') {
-      const sorted = [...venues].sort((a, b) => (typeof a.pricing === 'number' ? a.pricing : 0) - (typeof b.pricing === 'number' ? b.pricing : 0));
-      setFilteredVenues(sorted);
-    } else if (sortType === 'price_desc') {
-      const sorted = [...venues].sort((a, b) => (typeof b.pricing === 'number' ? b.pricing : 0) - (typeof a.pricing === 'number' ? a.pricing : 0));
-      setFilteredVenues(sorted);
-    } else {
-      // Default / distance sort - for now just reset
-      setFilteredVenues(venues);
-    }
   };
 
   const getPageTitle = () => {
-    if (initialSearch) return `Results for "${initialSearch}"`;
+    if (searchQuery) return `Venues matching "${searchQuery}"`;
     if (category === 'sports_turf' || category === 'turf') return 'TURF Venues';
     if (category === 'sports_pool') return 'Sports Pool Venues';
     return category ? `${category.charAt(0).toUpperCase() + category.slice(1)} Venues` : 'All Venues';
@@ -143,7 +198,7 @@ const VenuesList = () => {
                 {getPageTitle()}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {filteredVenues.length} {filteredVenues.length === 1 ? 'venue' : 'venues'} found
+                {processedVenues.length} {processedVenues.length === 1 ? 'venue' : 'venues'} found
               </p>
             </div>
 
@@ -171,11 +226,11 @@ const VenuesList = () => {
 
           {loadingVenues ? (
             <div className="text-center py-12 text-muted-foreground">Loading venues...</div>
-          ) : filteredVenues.length === 0 ? (
+          ) : processedVenues.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No venues found in this category yet. Please check back later or try another category.
+                No venues found matching your criteria.
               </AlertDescription>
             </Alert>
           ) : (
@@ -195,7 +250,7 @@ const VenuesList = () => {
                     }
                   }}
                 >
-                  {filteredVenues.map((venue) => (
+                  {processedVenues.map((venue) => (
                     <motion.div
                       key={venue.id}
                       variants={{
@@ -207,9 +262,9 @@ const VenuesList = () => {
                         id={venue.id}
                         name={venue.name}
                         image={venue.photos[0] || '/placeholder.svg'}
-                        rating={(venue as any).average_rating || 0}
+                        rating={venue.average_rating || 0}
                         price={Number(venue.pricing)}
-                        distance={2.5}
+                        distance={venue.distance}
                         category={venue.category}
                         amenities={venue.amenities.slice(0, 3)}
                       />
@@ -222,7 +277,7 @@ const VenuesList = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex-1 h-full min-h-[500px]"
                 >
-                  <VenueMap venues={filteredVenues} />
+                  <VenueMap venues={processedVenues} />
                 </motion.div>
               )}
             </>

@@ -14,7 +14,7 @@ interface VenueCardProps {
   image: string;
   rating: number;
   price: number;
-  distance: number;
+  distance?: number | null;
   category: string;
   amenities: string[];
 }
@@ -91,7 +91,7 @@ export const VenueCard = memo(({
 
             <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground/80">
               <MapPin className="h-3.5 w-3.5 text-primary/70" />
-              <span>{distance.toFixed(1)} km away</span>
+              <span>{typeof distance === 'number' ? `${distance.toFixed(1)} km away` : 'Distance unavailable'}</span>
             </div>
           </div>
 

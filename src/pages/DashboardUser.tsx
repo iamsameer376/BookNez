@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/carousel';
 import PageTransition from '@/components/PageTransition';
 import { motion } from 'framer-motion';
-import { HeroCarousel } from '@/components/HeroCarousel'; // Added HeroCarousel
+import { HeroCarousel } from '@/components/HeroCarousel';
+import { calculateDistance } from '@/utils/distance'; // Added HeroCarousel
 
 interface Venue {
   id: string;
@@ -215,20 +216,31 @@ const DashboardUser = () => {
                     </CarouselItem>
                   ))
                 ) : nearbyVenues.length > 0 ? (
-                  nearbyVenues.map((venue) => (
-                    <CarouselItem key={venue.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
-                      <VenueCard
-                        id={venue.id}
-                        name={venue.name}
-                        image={venue.photos[0] || '/placeholder.svg'}
-                        rating={venue.average_rating || 0}
-                        price={Number(venue.pricing)}
-                        distance={2.5}
-                        category={venue.category}
-                        amenities={venue.amenities.slice(0, 3)}
-                      />
-                    </CarouselItem>
-                  ))
+                  nearbyVenues.map((venue) => {
+                    const distance = userGeoLocation.loaded && userGeoLocation.coordinates
+                      ? calculateDistance(
+                        userGeoLocation.coordinates.lat,
+                        userGeoLocation.coordinates.lng,
+                        venue.latitude || 0,
+                        venue.longitude || 0
+                      )
+                      : null;
+
+                    return (
+                      <CarouselItem key={venue.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                        <VenueCard
+                          id={venue.id}
+                          name={venue.name}
+                          image={venue.photos[0] || '/placeholder.svg'}
+                          rating={venue.average_rating || 0}
+                          price={Number(venue.pricing)}
+                          distance={distance}
+                          category={venue.category}
+                          amenities={venue.amenities.slice(0, 3)}
+                        />
+                      </CarouselItem>
+                    );
+                  })
                 ) : (
                   <div className="col-span-full p-8 text-center text-muted-foreground bg-secondary/10 rounded-xl mx-4 w-full">
                     No venues found nearby. Try changing your location or category.

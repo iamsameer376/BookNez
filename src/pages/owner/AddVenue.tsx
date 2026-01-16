@@ -101,7 +101,7 @@ const AddVenue = () => {
     switch (step) {
       case 1:
         if (formData.category === 'turf' && formData.sports.length === 0) return false;
-        return formData.name && formData.description && formData.address && formData.category;
+        return formData.name && formData.description && formData.address && formData.category && formData.latitude && formData.longitude;
       case 2:
         return selectedImages.length >= 1;
       case 3:
@@ -398,7 +398,7 @@ const AddVenue = () => {
                     rows={2}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    You can finetune the address after selecting from map.
+                    Please ensure you select a location on the map to set exact coordinates.
                   </p>
                 </div>
               </div>
