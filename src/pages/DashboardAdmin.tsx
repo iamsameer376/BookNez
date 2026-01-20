@@ -343,16 +343,16 @@ const DashboardAdmin = () => {
                                     BookNex
                                 </h1>
                             </div>
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
+                            <span className="hidden md:inline text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
                                 Admin Portal
                             </span>
                         </motion.div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 md:gap-4">
                             <Dialog open={isBroadcastOpen} onOpenChange={setIsBroadcastOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" className="hidden md:flex gap-2">
+                                    <Button variant="outline" size="sm" className="flex gap-2 px-2 md:px-4">
                                         <BellRing className="h-4 w-4" />
-                                        Broadcast
+                                        <span className="hidden md:inline">Broadcast</span>
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-[425px]">

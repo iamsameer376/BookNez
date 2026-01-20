@@ -126,7 +126,7 @@ const DashboardUser = () => {
                           Beta
                         </span>
                       </div>
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">User Dashboard</span>
+                      <span className="hidden md:inline-block text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">User Dashboard</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 text-sm py-1 px-3 bg-secondary/10 rounded-full border border-secondary/20 hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => getLocation && getLocation()}>

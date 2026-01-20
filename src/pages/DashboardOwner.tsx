@@ -123,7 +123,7 @@ const DashboardOwner = () => {
                 Beta
               </span>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
+            <span className="hidden md:inline text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
               Venue Owner
             </span>
           </motion.div>
