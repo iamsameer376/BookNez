@@ -102,17 +102,21 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     }, [user, fetchNotifications, toast]);
 
     const markAsRead = async (id: string) => {
+        // Optimistic update: Update UI immediately
+        setNotifications(prev =>
+            prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+        );
+
         try {
             const { error } = await supabase
                 .from('notifications')
                 .update({ is_read: true })
                 .eq('id', id);
 
-            if (error) throw error;
-
-            setNotifications(prev =>
-                prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-            );
+            if (error) {
+                // Revert on error if needed, but for "read" status it's usually fine to just log
+                console.error('Error syncing read status:', error);
+            }
         } catch (error) {
             console.error('Error marking as read:', error);
         }
