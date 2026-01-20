@@ -95,26 +95,6 @@ export const PushNotificationManager = () => {
         }
     };
 
-    const sendTestNotification = async () => {
-        try {
-            setLoading(true);
-            const { error } = await supabase.from('notifications').insert({
-                recipient_id: user?.id,
-                title: "Test Notification",
-                message: "If you see this, push notifications are working!",
-                type: "info",
-                link: "/"
-            });
-            if (error) throw error;
-            toast({ title: "Sent!", description: "Check your notifications." });
-        } catch (error: any) {
-            console.error(error);
-            toast({ title: "Error", description: error.message, variant: "destructive" });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     if (!('Notification' in window)) {
         return null; // Not supported
     }
@@ -129,23 +109,16 @@ export const PushNotificationManager = () => {
     }
 
     return (
-        <div className="flex gap-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={isSubscribed ? unsubscribe : subscribe}
-                disabled={loading}
-                className={isSubscribed ? "border-green-500 text-green-600 bg-green-50" : ""}
-            >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                    isSubscribed ? <><Bell className="h-4 w-4 mr-2 fill-current" /> On</> : <><Bell className="h-4 w-4 mr-2" /> Enable Push</>
-                )}
-            </Button>
-            {isSubscribed && (
-                <Button variant="secondary" size="sm" onClick={sendTestNotification} disabled={loading}>
-                    Test Push
-                </Button>
+        <Button
+            variant="outline"
+            size="sm"
+            onClick={isSubscribed ? unsubscribe : subscribe}
+            disabled={loading}
+            className={isSubscribed ? "border-green-500 text-green-600 bg-green-50" : ""}
+        >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                isSubscribed ? <><Bell className="h-4 w-4 mr-2 fill-current" /> On</> : <><Bell className="h-4 w-4 mr-2" /> Enable Push</>
             )}
-        </div>
+        </Button>
     );
 };
