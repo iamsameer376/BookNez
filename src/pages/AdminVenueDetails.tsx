@@ -367,123 +367,98 @@ const AdminVenueDetails = () => {
                                         <CardTitle className="text-lg">Owner Information</CardTitle>
                                         <Button size="sm" variant="outline" className="h-8" onClick={() => setIsNotifyOpen(true)}>Message</Button>
                                     </CardHeader>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Message Owner</DialogTitle>
-                                            <DialogDescription>
-                                                Send a direct notification to {venue.profiles?.full_name || 'the owner'}.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="grid gap-4 py-4">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="msg">Message</Label>
-                                                <Textarea
-                                                    id="msg"
-                                                    value={notifyMessage}
-                                                    onChange={(e) => setNotifyMessage(e.target.value)}
-                                                    placeholder="Type your message..."
-                                                />
-                                            </div>
+
+                                    <CardContent className="space-y-4 text-sm">
+                                        <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/10">
+                                            <User className="h-4 w-4 text-primary" />
+                                            <span className="font-medium">{venue.profiles?.full_name || 'N/A'}</span>
                                         </div>
-                                        <DialogFooter>
-                                            <Button onClick={handleNotifyOwner} disabled={isSendingNotification}>
-                                                {isSendingNotification ? "Sending..." : "Send Message"}
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </CardHeader>
-                            <CardContent className="space-y-4 text-sm">
-                                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/10">
-                                    <User className="h-4 w-4 text-primary" />
-                                    <span className="font-medium">{venue.profiles?.full_name || 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/10">
-                                    <Mail className="h-4 w-4 text-primary" />
-                                    <span className="truncate">{venue.profiles?.email || 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/10">
-                                    <Phone className="h-4 w-4 text-primary" />
-                                    <span>{venue.profiles?.phone || 'N/A'}</span>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
+                                        <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/10">
+                                            <Mail className="h-4 w-4 text-primary" />
+                                            <span className="truncate">{venue.profiles?.email || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/10">
+                                            <Phone className="h-4 w-4 text-primary" />
+                                            <span>{venue.profiles?.phone || 'N/A'}</span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
 
-                    {/* Location */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                    >
-                        <Card className="border-border/50 shadow-md">
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <MapPin className="h-4 w-4 text-primary" /> Location
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">{venue.address}</p>
-                                <div className="mt-4 h-32 bg-muted rounded-xl flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border">
-                                    Map Preview Unavailable
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
+                            {/* Location */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                <Card className="border-border/50 shadow-md">
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-primary" /> Location
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{venue.address}</p>
+                                        <div className="mt-4 h-32 bg-muted rounded-xl flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border">
+                                            Map Preview Unavailable
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
 
-                    <div className="text-center text-xs text-muted-foreground">
-                        <p>Submitted: {new Date(venue.created_at).toLocaleString()}</p>
-                        <p className="mt-1">ID: {venue.id}</p>
+                            <div className="text-center text-xs text-muted-foreground">
+                                <p>Submitted: {new Date(venue.created_at).toLocaleString()}</p>
+                                <p className="mt-1">ID: {venue.id}</p>
+                            </div>
+
+                        </div>
                     </div>
-
-            </div>
-        </div>
                 </main >
 
-    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Delete Venue Permanently?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently remove <span className="font-semibold text-foreground">{venue.name}</span> and all its data.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={deleteVenue}>
-                    Yes, Delete Venue
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
+                <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Venue Permanently?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently remove <span className="font-semibold text-foreground">{venue.name}</span> and all its data.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={deleteVenue}>
+                                Yes, Delete Venue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
-{/* Notification Dialog */ }
-<Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
-    <DialogContent>
-        <DialogHeader>
-            <DialogTitle>Message Owner</DialogTitle>
-            <DialogDescription>
-                Send a direct notification to {venue.profiles?.full_name || 'the owner'}.
-            </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-                <Label htmlFor="msg">Message</Label>
-                <Textarea
-                    id="msg"
-                    value={notifyMessage}
-                    onChange={(e) => setNotifyMessage(e.target.value)}
-                    placeholder="Type your message..."
-                />
-            </div>
-        </div>
-        <DialogFooter>
-            <Button onClick={handleNotifyOwner} disabled={isSendingNotification}>
-                {isSendingNotification ? "Sending..." : "Send Message"}
-            </Button>
-        </DialogFooter>
-    </DialogContent>
-</Dialog>
+                {/* Notification Dialog */}
+                <Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Message Owner</DialogTitle>
+                            <DialogDescription>
+                                Send a direct notification to {venue.profiles?.full_name || 'the owner'}.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="msg">Message</Label>
+                                <Textarea
+                                    id="msg"
+                                    value={notifyMessage}
+                                    onChange={(e) => setNotifyMessage(e.target.value)}
+                                    placeholder="Type your message..."
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleNotifyOwner} disabled={isSendingNotification}>
+                                {isSendingNotification ? "Sending..." : "Send Message"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div >
         </PageTransition >
     );

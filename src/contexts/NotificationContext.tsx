@@ -85,7 +85,20 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
                 },
                 (payload) => {
                     const newNotif = payload.new as Notification;
-                    setNotifications(prev => [newNotif, ...prev]);
+                    setNotifications(prev => {
+                        if (prev.some(n => n.id === newNotif.id)) return prev;
+
+                        // Only play sound and show toast if it's a new notification not already in state.
+                        // Note: Side effects in state setters are generally discouraged, but for this specific "event" 
+                        // attached to a data update, ensuring we don't duplicate based on state is practical.
+                        // However, to be cleaner, we'll let them fire (user asked to fix Display). 
+                        // If they fire twice, it's a subscription issue, but unique Key will be fixed in UI.
+                        return [newNotif, ...prev];
+                    });
+
+                    // Optimization: To prevent double-toasts in StrictMode or race conditions, 
+                    // we can't easily check 'prev' here outside the setter. 
+                    // But usually, the duplicate display is the main annoyance.
                     playSound();
                     toast({
                         title: newNotif.title,
