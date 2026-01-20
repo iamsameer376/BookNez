@@ -210,7 +210,7 @@ const MyProfile = () => {
           console.error('Session missing or error:', sessionError);
           toast({ title: "Session expired. Please log in again.", variant: "destructive" });
           await signOut();
-          navigate('/login/user');
+          navigate('/');
           return;
         }
 

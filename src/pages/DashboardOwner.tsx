@@ -9,6 +9,7 @@ import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 import { motion } from 'framer-motion';
 import { SettingsMenu } from '@/components/SettingsMenu';
+import { NotificationBell } from '@/components/NotificationBell';
 import { isToday, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -138,7 +139,10 @@ const DashboardOwner = () => {
             </span>
           </div>
 
-          <SettingsMenu />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <SettingsMenu />
+          </div>
         </div>
       </header>
 

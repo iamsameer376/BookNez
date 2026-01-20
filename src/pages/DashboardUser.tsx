@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Search, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'; // Added Sparkles
 import { CategoryGrid } from '@/components/CategoryGrid';
 import { SettingsMenu } from '@/components/SettingsMenu';
+import { NotificationBell } from '@/components/NotificationBell';
 import { VenueCard, VenueCardSkeleton } from '@/components/VenueCard'; // Added Skeleton
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -139,7 +140,8 @@ const DashboardUser = () => {
                     </span>
                   </div>
                 </div>
-                <div className="md:hidden">
+                <div className="md:hidden flex items-center gap-2">
+                  <NotificationBell />
                   <SettingsMenu />
                 </div>
               </div>
@@ -156,7 +158,8 @@ const DashboardUser = () => {
                 </form>
               </div>
 
-              <div className="hidden md:block">
+              <div className="hidden md:flex items-center gap-2">
+                <NotificationBell />
                 <SettingsMenu />
               </div>
             </div>

@@ -10,6 +10,7 @@ import MobileNav from "@/components/MobileNav";
 import { Loading } from "@/components/Loading";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { FavoritesProvider } from "./hooks/useFavorites";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 // Lazy load pages for performance
 const Index = lazy(() => import("./pages/Index"));
@@ -37,16 +38,18 @@ const VenueReviews = lazy(() => import("./pages/VenueReviews"));
 const FavoriteVenues = lazy(() => import("@/pages/FavoriteVenues"));
 const LoginAdmin = lazy(() => import("./pages/LoginAdmin"));
 const DashboardAdmin = lazy(() => import("./pages/DashboardAdmin"));
+const AdminVenueDetails = lazy(() => import("./pages/AdminVenueDetails"));
 
 
 // Create a wrapper component to handle conditional rendering
 const AppContent = () => {
   const location = useLocation();
   const isAuthPage = ['/', '/login/owner', '/login/user', '/login/admin', '/register/owner', '/register/user', '/forgot-password'].includes(location.pathname);
+  const isAdminPage = location.pathname.startsWith('/dashboard/admin') || location.pathname.startsWith('/admin/');
 
   return (
     <>
-      <div className={`min-h-screen bg-background text-foreground transition-colors duration-200 ${!isAuthPage ? 'pb-20' : ''}`}>
+      <div className={`min-h-screen bg-background text-foreground transition-colors duration-200 ${!isAuthPage && !isAdminPage ? 'pb-20' : ''}`}>
         <OfflineBanner />
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -59,6 +62,7 @@ const AppContent = () => {
             <Route path="/dashboard/owner" element={<DashboardOwner />} />
             <Route path="/dashboard/user" element={<DashboardUser />} />
             <Route path="/dashboard/admin" element={<DashboardAdmin />} />
+            <Route path="/admin/venues/:id" element={<AdminVenueDetails />} />
             <Route path="/login/admin" element={<LoginAdmin />} />
             <Route path="/owner/add-venue" element={<AddVenue />} />
             <Route path="/owner/venues" element={<ManageVenues />} />
@@ -78,8 +82,8 @@ const AppContent = () => {
           </Routes>
         </Suspense>
 
-        {/* Mobile Navigation Bar - Hidden on Auth pages */}
-        {!isAuthPage && <MobileNav />}
+        {/* Mobile Navigation Bar - Hidden on Auth pages and Admin pages */}
+        {!isAuthPage && !isAdminPage && <MobileNav />}
       </div>
     </>
   );
@@ -93,11 +97,13 @@ const App = () => (
       <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
-            <FavoritesProvider>
-              <Toaster />
-              <Sonner />
-              <AppContent />
-            </FavoritesProvider>
+            <NotificationProvider>
+              <FavoritesProvider>
+                <Toaster />
+                <Sonner />
+                <AppContent />
+              </FavoritesProvider>
+            </NotificationProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
