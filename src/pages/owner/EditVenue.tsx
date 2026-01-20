@@ -216,6 +216,17 @@ const EditVenue = () => {
 
       console.log('Update success'); // DEBUG
 
+      // Notify owner if edited by Admin
+      if (hasRole('admin') && venue.owner_id !== user?.id) {
+        await supabase.from('notifications').insert({
+          recipient_id: venue.owner_id,
+          title: "Venue Details Updated",
+          message: `An administrator has updated the details for your venue "${venue.name}".`,
+          type: "info",
+          link: `/owner/venues/${id}/edit`
+        });
+      }
+
       toast({
         title: 'Settings saved',
         description: 'Venue details updated successfully',

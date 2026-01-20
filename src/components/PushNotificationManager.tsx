@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
 // NEEDS REPLACEMENT: Generate VAPID Keys online (e.g., https://vapidkeys.com/)
-const VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
+const VAPID_PUBLIC_KEY = 'BBWWnrLf1WTxLKF7tuLV5TPuDRbZFLkAPDtTXpaKCbHmpB1LL8TxOeboPqEi6pQSLKmgey3wz69aHuR3ovMWvqg';
 
 export const PushNotificationManager = () => {
     const { user } = useAuth();
@@ -43,10 +43,7 @@ export const PushNotificationManager = () => {
     };
 
     const subscribe = async () => {
-        if (VAPID_PUBLIC_KEY === 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY') {
-            toast({ title: "Configuration Error", description: "VAPID Public Key is missing in code.", variant: "destructive" });
-            return;
-        }
+
 
         try {
             setLoading(true);

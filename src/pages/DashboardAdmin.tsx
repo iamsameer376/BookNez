@@ -298,6 +298,18 @@ const DashboardAdmin = () => {
                 throw new Error("Permission denied: Unable to update venue status. Please check Database RLS policies.");
             }
 
+            // Notify Owner
+            const venue = allVenues.find(v => v.id === venueId);
+            if (venue) {
+                await supabase.from('notifications').insert({
+                    recipient_id: venue.owner_id,
+                    title: "Venue Status Update",
+                    message: `Your venue "${venue.name}" has been ${status}.`,
+                    type: "info",
+                    link: `/owner/venues/${venueId}/edit` // Direct link to check
+                });
+            }
+
             toast({ title: "Success", description: `Venue has been ${status}` });
             fetchVenues();
         } catch (error: any) {
@@ -309,6 +321,17 @@ const DashboardAdmin = () => {
 
     const deleteVenue = async (venueId: string) => {
         try {
+            // Notify Owner before deletion (so we have the data)
+            const venue = allVenues.find(v => v.id === venueId);
+            if (venue) {
+                await supabase.from('notifications').insert({
+                    recipient_id: venue.owner_id,
+                    title: "Venue Deleted",
+                    message: `Your venue "${venue.name}" has been permanently deleted by the administrator.`,
+                    type: "alert"
+                });
+            }
+
             const { error: bookingsError } = await supabase.from('bookings').delete().eq('venue_id', venueId);
             if (bookingsError) throw bookingsError;
             const { error: pricingError } = await supabase.from('venue_pricing').delete().eq('venue_id', venueId);
