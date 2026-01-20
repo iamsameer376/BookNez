@@ -109,37 +109,40 @@ const DashboardOwner = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 pb-20">
       <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10 transition-all duration-300">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="container mx-auto px-3 py-3 md:px-4 md:py-4 flex justify-between items-center gap-2">
+          {/* Logo Section */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col"
+            className="flex flex-col shrink-0"
           >
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <h1 className="text-xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
                 BookNex
               </h1>
-              <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
+              <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
                 Beta
               </span>
             </div>
-            <span className="hidden md:inline text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
-              Venue Owner
-            </span>
           </motion.div>
 
-          <div className="flex items-center gap-1.5 text-sm py-1 px-3 bg-secondary/10 rounded-full border border-secondary/20 hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => getLocation && getLocation()}>
-            <MapPin className={`h-3.5 w-3.5 ${userGeoLocation.error ? 'text-destructive' : 'text-primary'}`} />
-            <span className="font-medium truncate max-w-[120px] md:max-w-[200px]">
+          {/* Location Pill - Flexible width */}
+          <div
+            className="flex items-center justify-center gap-1.5 text-xs md:text-sm py-1.5 px-2.5 bg-secondary/10 rounded-full border border-secondary/20 hover:bg-secondary/20 transition-colors cursor-pointer min-w-0 mx-auto"
+            onClick={() => getLocation && getLocation()}
+          >
+            <MapPin className={`h-3 w-3 md:h-3.5 md:w-3.5 shrink-0 ${userGeoLocation.error ? 'text-destructive' : 'text-primary'}`} />
+            <span className="font-medium truncate max-w-[80px] sm:max-w-[150px] md:max-w-[200px]">
               {!userGeoLocation.loaded
-                ? 'Locating...'
+                ? '...'
                 : userGeoLocation.error
-                  ? 'Locate Me'
-                  : (userGeoLocation.city || userCity || 'Select Location')}
+                  ? 'Locate'
+                  : (userGeoLocation.city || userCity || 'Location')}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Actions - Right Aligned */}
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
             <NotificationBell />
             <SettingsMenu />
           </div>
