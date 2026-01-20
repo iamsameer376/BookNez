@@ -27,7 +27,7 @@ const MobileNav = () => {
     const links = userRole === 'owner' ? ownerLinks : userLinks;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
+        <div className="fixed bottom-0 left-0 right-0 z-[999] bg-background border-t border-border pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.1)] translate-z-0">
             <nav className="flex items-center justify-around h-16 max-w-lg mx-auto">
                 {links.map((link) => {
                     const Icon = link.icon;
