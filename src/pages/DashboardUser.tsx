@@ -173,24 +173,14 @@ const DashboardUser = () => {
           </div>
         </header>
 
-        <div className="hidden md:flex items-center gap-2">
-          <NotificationBell />
-          <SettingsMenu />
-        </div>
-      </div>
-    </div>
-        </header >
+        <main className="container mx-auto px-3 py-4 md:px-4 md:py-8 space-y-6 md:space-y-8">
+          {/* Hero Section */}
+          <section>
+            <HeroCarousel />
+          </section>
 
-  {/* Main Content */ }
-  < main className = "space-y-8" >
-
-    {/* Hero Section */ }
-    < section className = "container mx-auto px-4 pt-6" >
-      <HeroCarousel />
-          </section >
-
-  {/* Categories Section */ }
-  < section className = "container mx-auto px-4" >
+          {/* Categories Section */}
+          < section className="container mx-auto px-4" >
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               <h2 className="text-xl font-bold">Browse Categories</h2>
@@ -198,8 +188,8 @@ const DashboardUser = () => {
             <CategoryGrid onSelectCategory={handleCategorySelect} selectedCategory={selectedCategory} />
           </section >
 
-  {/* Nearby Venues Carousel */ }
-  < section className = "container mx-auto px-4 pb-8" >
+          {/* Nearby Venues Carousel */}
+          < section className="container mx-auto px-4 pb-8" >
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold">Recommended Near You</h2>
@@ -275,34 +265,33 @@ const DashboardUser = () => {
               <CarouselPrevious data-carousel-prev className="hidden" />
               <CarouselNext data-carousel-next className="hidden" />
             </Carousel>
-          </section >
+          </section>
 
-  {/* CTA Section */ }
-  < section className = "container mx-auto px-4 pb-8" >
-    <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-8 rounded-2xl overflow-hidden relative">
-      <div className="relative z-10 max-w-2xl">
-        <h3 className="text-2xl md:text-3xl font-bold mb-2">Check Your Bookings</h3>
-        <p className="text-primary-foreground/90 mb-6 max-w-lg">
-          View your upcoming games, history, and manage your schedule all in one place.
-        </p>
-        <Button
-          onClick={() => navigate('/my-bookings')}
-          variant="secondary"
-          size="lg"
-          className="font-semibold shadow-lg hover:shadow-xl transition-all"
-        >
-          Go to My Bookings
-        </Button>
+          {/* CTA Section */}
+          <section className="container mx-auto px-4 pb-8">
+            <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-8 rounded-2xl overflow-hidden relative">
+              <div className="relative z-10 max-w-2xl">
+                <h3 className="text-2xl md:text-3xl font-bold mb-2">Check Your Bookings</h3>
+                <p className="text-primary-foreground/90 mb-6 max-w-lg">
+                  View your upcoming games, history, and manage your schedule all in one place.
+                </p>
+                <Button
+                  onClick={() => navigate('/my-bookings')}
+                  variant="secondary"
+                  size="lg"
+                  className="font-semibold shadow-lg hover:shadow-xl transition-all"
+                >
+                  Go to My Bookings
+                </Button>
+              </div>
+              {/* Abstract Pattern Background */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4" />
+            </Card>
+          </section>
+        </main>
       </div>
-      {/* Abstract Pattern Background */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4" />
-    </Card>
-          </section >
-
-        </main >
-      </div >
-    </PageTransition >
+    </PageTransition>
   );
 };
 

@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import {
     Clock, MapPin, User, Info, DollarSign, CheckCircle, XCircle,
-    ArrowLeft, ShieldAlert, Building2, Calendar, Star, Phone, Mail, MessageSquare
+    ArrowLeft, ShieldAlert, Building2, Calendar, Star, Phone, Mail, MessageSquare, Edit, Trash2
 } from 'lucide-react';
 import {
     Carousel,
@@ -201,10 +201,11 @@ const AdminVenueDetails = () => {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="hidden sm:flex gap-2 border-primary/20 text-primary hover:bg-primary/5 mr-2"
+                                className="flex gap-2 border-primary/20 text-primary hover:bg-primary/5"
                                 onClick={() => setIsNotifyOpen(true)}
                             >
-                                <MessageSquare className="h-4 w-4" /> Message Owner
+                                <MessageSquare className="h-4 w-4" />
+                                <span className="hidden sm:inline">Message Owner</span>
                             </Button>
                             {venue.status === 'rejected' ? (
                                 <>
@@ -214,13 +215,16 @@ const AdminVenueDetails = () => {
                                         disabled={actionLoading}
                                         onClick={() => updateStatus('approved')}
                                     >
-                                        <CheckCircle className="h-4 w-4 mr-2" /> Approve
+                                        <CheckCircle className="h-4 w-4 sm:mr-2" />
+                                        <span className="hidden sm:inline">Approve</span>
                                     </Button>
                                     <Button size="sm" variant="outline" onClick={() => navigate(`/owner/venues/${venue.id}`)}>
-                                        Edit
+                                        <Edit className="h-4 w-4 sm:mr-2" />
+                                        <span className="hidden sm:inline">Edit</span>
                                     </Button>
                                     <Button size="sm" variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-                                        Delete
+                                        <Trash2 className="h-4 w-4 sm:mr-2" />
+                                        <span className="hidden sm:inline">Delete</span>
                                     </Button>
                                 </>
                             ) : (
@@ -233,14 +237,16 @@ const AdminVenueDetails = () => {
                                                 disabled={actionLoading}
                                                 onClick={() => updateStatus('rejected')}
                                             >
-                                                <XCircle className="h-4 w-4 mr-2" /> Reject
+                                                <XCircle className="h-4 w-4 sm:mr-2" />
+                                                <span className="hidden sm:inline">Reject</span>
                                             </Button>
                                             <Button
                                                 className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20"
                                                 disabled={actionLoading}
                                                 onClick={() => updateStatus('approved')}
                                             >
-                                                <CheckCircle className="h-4 w-4 mr-2" /> Approve
+                                                <CheckCircle className="h-4 w-4 sm:mr-2" />
+                                                <span className="hidden sm:inline">Approve</span>
                                             </Button>
                                         </>
                                     ) : (
@@ -250,13 +256,16 @@ const AdminVenueDetails = () => {
                                                 onClick={() => updateStatus(venue.status === 'paused' ? 'approved' : 'paused')}
                                                 disabled={actionLoading}
                                             >
-                                                {venue.status === 'paused' ? 'Resume Listing' : 'Pause Listing'}
+                                                {venue.status === 'paused' ? <CheckCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                                <span className="hidden sm:inline ml-2">{venue.status === 'paused' ? 'Resume' : 'Pause'}</span>
                                             </Button>
                                             <Button size="sm" variant="outline" onClick={() => navigate(`/owner/venues/${venue.id}`)}>
-                                                Edit
+                                                <Edit className="h-4 w-4 sm:mr-2" />
+                                                <span className="hidden sm:inline">Edit</span>
                                             </Button>
                                             <Button size="sm" variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-                                                Delete
+                                                <Trash2 className="h-4 w-4 sm:mr-2" />
+                                                <span className="hidden sm:inline">Delete</span>
                                             </Button>
                                         </>
                                     )}
