@@ -385,7 +385,7 @@ const VenueDetail = () => {
             className="gap-2 hover:bg-background/80"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Venues
+            <span className="hidden sm:inline">Back to Venues</span>
           </Button>
         </div>
       </header>
