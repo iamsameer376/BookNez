@@ -450,6 +450,34 @@ const AdminVenueDetails = () => {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
+                {/* Notification Dialog */}
+                <Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Message Owner</DialogTitle>
+                            <DialogDescription>
+                                Send a direct notification to {venue.profiles?.full_name || 'the owner'}.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="msg">Message</Label>
+                                <Textarea
+                                    id="msg"
+                                    value={notifyMessage}
+                                    onChange={(e) => setNotifyMessage(e.target.value)}
+                                    placeholder="Type your message..."
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleNotifyOwner} disabled={isSendingNotification}>
+                                {isSendingNotification ? "Sending..." : "Send Message"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </PageTransition>
     );
