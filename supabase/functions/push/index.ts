@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import webpush from "npm:web-push@3.6.7"
 import { createClient } from "npm:@supabase/supabase-js@2"
