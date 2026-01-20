@@ -35,12 +35,14 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const MyBookings = lazy(() => import("./pages/MyBookings"));
 const VenueReviews = lazy(() => import("./pages/VenueReviews"));
 const FavoriteVenues = lazy(() => import("@/pages/FavoriteVenues"));
+const LoginAdmin = lazy(() => import("./pages/LoginAdmin"));
+const DashboardAdmin = lazy(() => import("./pages/DashboardAdmin"));
 
 
 // Create a wrapper component to handle conditional rendering
 const AppContent = () => {
   const location = useLocation();
-  const isAuthPage = ['/', '/login/owner', '/login/user', '/register/owner', '/register/user', '/forgot-password'].includes(location.pathname);
+  const isAuthPage = ['/', '/login/owner', '/login/user', '/login/admin', '/register/owner', '/register/user', '/forgot-password'].includes(location.pathname);
 
   return (
     <>
@@ -56,6 +58,8 @@ const AppContent = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/dashboard/owner" element={<DashboardOwner />} />
             <Route path="/dashboard/user" element={<DashboardUser />} />
+            <Route path="/dashboard/admin" element={<DashboardAdmin />} />
+            <Route path="/login/admin" element={<LoginAdmin />} />
             <Route path="/owner/add-venue" element={<AddVenue />} />
             <Route path="/owner/venues" element={<ManageVenues />} />
             <Route path="/owner/venues/:id" element={<EditVenue />} />

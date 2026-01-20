@@ -69,9 +69,10 @@ const DashboardUser = () => {
     try {
       setIsLoadingVenues(true);
       const { data, error } = await supabase
-        .from('venue_with_stats' as any)
+        .from('venues')
         .select('*')
-        .eq('is_active', true)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
         .limit(8);
 
       if (error) throw error;

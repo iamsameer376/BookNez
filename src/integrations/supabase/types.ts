@@ -283,6 +283,7 @@ export type Database = {
           photos: string[] | null
           pricing: number
           sports: string[] | null
+          status: Database["public"]["Enums"]["venue_status"]
           updated_at: string
         }
         Insert: {
@@ -303,6 +304,7 @@ export type Database = {
           photos?: string[] | null
           pricing: number
           sports?: string[] | null
+          status?: Database["public"]["Enums"]["venue_status"]
           updated_at?: string
         }
         Update: {
@@ -323,6 +325,7 @@ export type Database = {
           photos?: string[] | null
           pricing?: number
           sports?: string[] | null
+          status?: Database["public"]["Enums"]["venue_status"]
           updated_at?: string
         }
         Relationships: []
@@ -345,7 +348,8 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "user" | "owner"
+      app_role: "user" | "owner" | "admin"
+      venue_status: "pending" | "approved" | "rejected" | "paused"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -473,7 +477,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["user", "owner"],
+      app_role: ["user", "owner", "admin"],
+      venue_status: ["pending", "approved", "rejected", "paused"],
     },
   },
 } as const

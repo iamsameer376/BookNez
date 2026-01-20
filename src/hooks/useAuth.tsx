@@ -8,13 +8,13 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRoles: string[];
-  activeRole: 'user' | 'owner' | null;
-  setActiveRole: (role: 'user' | 'owner') => void;
+  activeRole: 'user' | 'owner' | 'admin' | null;
+  setActiveRole: (role: 'user' | 'owner' | 'admin') => void;
   userName: string | null;
   userCity: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  hasRole: (role: 'user' | 'owner') => boolean;
+  hasRole: (role: 'user' | 'owner' | 'admin') => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,8 +23,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
-  const [activeRole, setActiveRoleState] = useState<'user' | 'owner' | null>(() => {
-    return localStorage.getItem('activeRole') as 'user' | 'owner' | null;
+  const [activeRole, setActiveRoleState] = useState<'user' | 'owner' | 'admin' | null>(() => {
+    return localStorage.getItem('activeRole') as 'user' | 'owner' | 'admin' | null;
   });
   const [userName, setUserName] = useState<string | null>(null);
   const [userCity, setUserCity] = useState<string | null>(null);
@@ -115,12 +115,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const setActiveRole = (role: 'user' | 'owner') => {
+  const setActiveRole = (role: 'user' | 'owner' | 'admin') => {
     setActiveRoleState(role);
     localStorage.setItem('activeRole', role);
   };
 
-  const hasRole = (role: 'user' | 'owner') => {
+  const hasRole = (role: 'user' | 'owner' | 'admin') => {
     return userRoles.includes(role);
   };
 

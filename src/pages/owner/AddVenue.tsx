@@ -200,7 +200,8 @@ const AddVenue = () => {
         opening_time: formData.openingTime,
         closing_time: formData.closingTime,
         photos: photoUrls,
-        is_active: true
+        is_active: true,
+        status: 'pending'
       };
 
       const { error: venueError } = await supabase
@@ -212,9 +213,9 @@ const AddVenue = () => {
       if (venueError) throw venueError;
 
       toast({
-        title: 'Venue created successfully!',
-        description: 'Your venue is now live',
-        duration: 1000,
+        title: 'Venue submitted successfully!',
+        description: 'Your venue is now pending admin approval.',
+        duration: 3000,
       });
 
       navigate('/owner/venues');

@@ -197,9 +197,16 @@ const ManageVenues = () => {
 
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold">₹{venue.pricing}/hr</span>
-                    <Badge variant={venue.is_active ? 'default' : 'secondary'}>
-                      {venue.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
+                    <div className="flex gap-2">
+                      {venue.status === 'pending' && <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>}
+                      {venue.status === 'rejected' && <Badge variant="destructive">Rejected</Badge>}
+                      {venue.status === 'paused' && <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-100">Paused by Admin</Badge>}
+                      {venue.status === 'approved' && (
+                        <Badge variant={venue.is_active ? 'default' : 'secondary'}>
+                          {venue.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">

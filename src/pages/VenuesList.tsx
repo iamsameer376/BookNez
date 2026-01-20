@@ -38,9 +38,9 @@ const VenuesList = () => {
     setLoadingVenues(true);
     try {
       let query = supabase
-        .from('venue_with_stats' as any)
+        .from('venues')
         .select('*')
-        .eq('is_active', true);
+        .eq('status', 'approved');
 
       if (category) {
         query = query.or(`category.eq.${category},category.eq.sports_${category}`);

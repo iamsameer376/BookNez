@@ -29,7 +29,7 @@ type VenuePricing = Tables<'venue_pricing'>;
 const EditVenue = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -150,12 +150,17 @@ const EditVenue = () => {
     console.log('Fetching venue data for ID:', id); // DEBUG
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('venues')
         .select('*')
-        .eq('id', id)
-        .eq('owner_id', user.id)
-        .single();
+        .eq('id', id);
+
+      // Only restrict to owner if not admin
+      if (!hasRole('admin')) {
+        query = query.eq('owner_id', user.id);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) throw error;
       setVenue(data);
@@ -167,7 +172,11 @@ const EditVenue = () => {
         variant: 'destructive',
         duration: 1000,
       });
-      navigate('/owner/venues');
+      if (hasRole('admin')) {
+        navigate('/dashboard/admin');
+      } else {
+        navigate('/owner/venues');
+      }
     } finally {
       setLoading(false);
     }
@@ -500,7 +509,7 @@ const EditVenue = () => {
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/owner/venues')} className="hover:bg-secondary/20">
+            <Button variant="ghost" size="icon" onClick={() => hasRole('admin') ? navigate('/dashboard/admin') : navigate('/owner/venues')} className="hover:bg-secondary/20">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
