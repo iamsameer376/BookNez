@@ -51,6 +51,18 @@ const LoginOwner = () => {
 
       if (error) throw error;
 
+      // Immediate Ban Check
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('is_banned')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileData?.is_banned) {
+        await supabase.auth.signOut();
+        throw new Error("You are banned from using this platform due to guideline violations.");
+      }
+
       // Check roles
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')

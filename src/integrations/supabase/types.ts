@@ -121,6 +121,7 @@ export type Database = {
           security_question: string | null
           state: string | null
           updated_at: string
+          is_banned: boolean | null
         }
         Insert: {
           city?: string | null
@@ -134,6 +135,7 @@ export type Database = {
           security_question?: string | null
           state?: string | null
           updated_at?: string
+          is_banned?: boolean | null
         }
         Update: {
           city?: string | null
@@ -147,6 +149,7 @@ export type Database = {
           security_question?: string | null
           state?: string | null
           updated_at?: string
+          is_banned?: boolean | null
         }
         Relationships: []
       }

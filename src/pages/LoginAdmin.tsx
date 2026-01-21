@@ -30,6 +30,23 @@ const LoginAdmin = () => {
             if (error) throw error;
 
             if (data.session) {
+                // Immediate Ban Check
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('is_banned')
+                    .eq('id', data.session.user.id)
+                    .single();
+
+                if (profileData?.is_banned) {
+                    await supabase.auth.signOut();
+                    toast({
+                        title: "Access Denied",
+                        description: "You have been banned from using this platform.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+
                 // Check if user has admin role
                 const { data: roleData, error: roleError } = await supabase
                     .from('user_roles')

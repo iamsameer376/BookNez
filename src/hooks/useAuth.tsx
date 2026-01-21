@@ -75,12 +75,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const roles = data?.map(r => r.role) || [];
       setUserRoles(roles);
 
-      // Fetch user name and city from profiles
+      // Fetch user name, city, and ban status from profiles
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('full_name, city')
+        .select('full_name, city, is_banned')
         .eq('id', userId)
         .maybeSingle();
+
+      if (profileData?.is_banned) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setUserRoles([]);
+        setUserName(null);
+        setActiveRoleState(null);
+        localStorage.removeItem('activeRole');
+
+        toast({
+          title: "Account Banned",
+          description: "You have been banned for violating our guidelines. Please contact support.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        return; // Stop execution
+      }
 
       setUserName(profileData?.full_name || null);
       setUserCity(profileData?.city || null);

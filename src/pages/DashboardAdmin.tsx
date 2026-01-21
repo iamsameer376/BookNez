@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { XCircle, MapPin, Clock, Activity, TrendingUp, Building2, Grid } from 'lucide-react';
+import { XCircle, MapPin, Clock, Activity, TrendingUp, Building2, Grid, Search, Users, Mail, Phone, Lock, Unlock } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import { motion } from 'framer-motion';
 
@@ -31,6 +31,13 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -206,12 +213,209 @@ const DashboardSkeleton = () => (
     </div>
 );
 
+// --- Sub-component for User Management ---
+const UserManagementTab = ({ activeTab }: { activeTab: string }) => {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'owner' | 'admin'>('all');
+
+    useEffect(() => {
+        if (activeTab === 'users' && user) {
+            fetchUsers();
+        }
+    }, [activeTab, user]);
+
+    const fetchUsers = async () => {
+        if (!user) return;
+        try {
+            setLoading(true);
+            // Fetch profiles with their roles
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (profilesError) throw profilesError;
+
+            const { data: roles, error: rolesError } = await supabase
+                .from('user_roles')
+                .select('*');
+
+            if (rolesError) throw rolesError;
+
+            // Fetch venues to identify owners (Fallback for RLS)
+            const { data: venueOwners, error: venueError } = await supabase
+                .from('venues')
+                .select('owner_id');
+
+            const ownerIds = new Set(venueOwners?.map(v => v.owner_id) || []);
+
+            // Merge roles into profiles
+            const mergedUsers = profiles.map(profile => {
+                const userRole = roles.find(r => r.user_id === profile.id);
+                let role = userRole?.role;
+
+                // Force admin role for current user
+                if (user && profile.id === user.id) {
+                    role = 'admin';
+                }
+                // Fallback if role is missing (e.g. RLS hidden or new user)
+                else if (!role) {
+                    if (ownerIds.has(profile.id)) role = 'owner';
+                    else role = 'user';
+                }
+
+                return { ...profile, role };
+            });
+
+            setUsers(mergedUsers);
+        } catch (error: any) {
+            console.error('Error fetching users:', error);
+            toast({ title: "Error", description: "Failed to load users", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleBan = async (userId: string, currentStatus: boolean) => {
+        try {
+            // Optimistic update
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: !currentStatus } : u));
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ is_banned: !currentStatus })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            toast({
+                title: currentStatus ? "User Unbanned" : "User Banned",
+                description: `User access has been ${currentStatus ? 'restored' : 'revoked'}.`
+            });
+        } catch (error: any) {
+            console.error('Error toggling ban:', error);
+            toast({
+                title: "Error",
+                description: error.message || "Failed to update ban status",
+                variant: "destructive"
+            });
+            fetchUsers(); // Revert on error
+        }
+    };
+
+    const filteredUsers = users.filter(user => {
+        const matchesSearch =
+            user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.phone && user.phone.includes(searchQuery));
+        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+        return matchesSearch && matchesRole;
+    });
+
+    if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-20 bg-card/50 animate-pulse rounded-xl" />)}</div>;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-card/40 p-4 rounded-xl border border-border/40 backdrop-blur-sm">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search users by name, email, or phone..."
+                        className="pl-9 bg-background/50 border-border/50 focus:ring-primary/20"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+                    <SelectTrigger className="w-full md:w-48 bg-background/50">
+                        <SelectValue placeholder="Filter by Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="user">Users</SelectItem>
+                        <SelectItem value="owner">Owners</SelectItem>
+                        <SelectItem value="admin">Admins</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="grid gap-4">
+                {filteredUsers.map((user) => (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={user.id}
+                    >
+                        <Card className={`overflow-hidden transition-all hover:shadow-lg hover:border-primary/20 ${user.is_banned ? 'opacity-75 border-red-500/30 bg-red-500/5' : 'bg-card/60 backdrop-blur-sm'}`}>
+                            <CardContent className="p-4 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 overflow-hidden">
+                                    <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold ${user.is_banned ? 'bg-red-100 text-red-600' : 'bg-primary/10 text-primary'}`}>
+                                        {user.full_name?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="font-semibold truncate flex items-center gap-2">
+                                            {user.full_name}
+                                            <Badge variant="outline" className={`text-xs capitalize ${user.role === 'owner' ? 'border-primary/40 text-primary bg-primary/5' : ''} ${user.role === 'admin' ? 'border-purple-500/40 text-purple-600 bg-purple-500/5' : ''}`}>
+                                                {user.role}
+                                            </Badge>
+                                            {user.is_banned && <Badge variant="destructive" className="h-5 px-1.5 text-[10px] uppercase">Banned</Badge>}
+                                        </h4>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-muted-foreground mt-0.5">
+                                            <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {user.email}</span>
+                                            <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {user.phone}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    {user.role !== 'admin' && (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-medium text-muted-foreground hidden sm:inline">{user.is_banned ? 'Unban' : 'Ban'}</span>
+                                                        <Switch
+                                                            checked={user.is_banned || false}
+                                                            onCheckedChange={() => toggleBan(user.id, user.is_banned || false)}
+                                                            className="data-[state=checked]:bg-destructive"
+                                                        />
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{user.is_banned ? "Restore access" : "Revoke access"}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                ))}
+
+                {filteredUsers.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                        <p>No users found matching your search.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const DashboardAdmin = () => {
     const { user, signOut, hasRole } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
     const [allVenues, setAllVenues] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'venues' | 'users'>('venues');
+
+    // Venue related state
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const [venueToDelete, setVenueToDelete] = useState<string | null>(null);
 
@@ -348,215 +552,254 @@ const DashboardAdmin = () => {
         } finally { setVenueToDelete(null); }
     };
 
-    if (loading) return <DashboardSkeleton />;
+    if (loading && allVenues.length === 0) return <DashboardSkeleton />;
 
     return (
         <PageTransition>
             <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 pb-20">
 
                 <header className="border-b bg-background/60 backdrop-blur-xl sticky top-0 z-30 transition-all duration-300 shadow-sm">
-                    <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="flex flex-col"
-                        >
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
-                                    BookNex
-                                </h1>
-                            </div>
-                            <span className="hidden md:inline text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
-                                Admin Portal
-                            </span>
-                        </motion.div>
-                        <div className="flex items-center gap-2 md:gap-4">
-                            <Dialog open={isBroadcastOpen} onOpenChange={setIsBroadcastOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" className="flex gap-2 px-2 md:px-4">
-                                        <BellRing className="h-4 w-4" />
-                                        <span className="hidden md:inline">Broadcast</span>
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                        <DialogTitle>Send Broadcast</DialogTitle>
-                                        <DialogDescription>
-                                            Send a notification to all users, owners, or everyone.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="target">Target Audience</Label>
-                                            <Select value={broadcastTarget} onValueChange={(v: any) => setBroadcastTarget(v)}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select audience" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">Everyone</SelectItem>
-                                                    <SelectItem value="owner">Venue Owners</SelectItem>
-                                                    <SelectItem value="user">Users</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="title">Title</Label>
-                                            <Input
-                                                id="title"
-                                                value={broadcastTitle}
-                                                onChange={(e) => setBroadcastTitle(e.target.value)}
-                                                placeholder="Announcement Title"
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="message">Message</Label>
-                                            <Textarea
-                                                id="message"
-                                                value={broadcastMessage}
-                                                onChange={(e) => setBroadcastMessage(e.target.value)}
-                                                placeholder="Type your message here..."
-                                            />
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button type="submit" onClick={handleBroadcast} disabled={isSending}>
-                                            {isSending ? "Sending..." : "Send Announcement"}
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                    <div className="container mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center justify-between w-full md:w-auto">
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="flex flex-col"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
+                                        BookNex
+                                    </h1>
+                                </div>
+                                <span className="hidden md:inline text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em] ml-0.5">
+                                    Admin Portal
+                                </span>
+                            </motion.div>
 
-                            <NotificationBell />
-                            <SettingsMenu />
+                            {/* Mobile Header Actions */}
+                            <div className="flex items-center gap-2 md:hidden">
+                                <NotificationBell />
+                                <SettingsMenu />
+                            </div>
+                        </div>
+
+                        {/* Desktop Header Actions + Tabs Wrapper */}
+                        <div className="flex flex-col-reverse md:flex-row items-center gap-4 w-full md:w-auto">
+
+                            {/* Tabs */}
+                            <div className="flex items-center bg-secondary/50 p-1 rounded-lg border border-border/50 self-start md:self-auto w-full md:w-auto">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-md flex-1 md:w-28 transition-all ${activeTab === 'venues' ? 'bg-background shadow-sm text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    onClick={() => setActiveTab('venues')}
+                                >
+                                    <Grid className="mr-2 h-4 w-4" /> Venues
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-md flex-1 md:w-28 transition-all ${activeTab === 'users' ? 'bg-background shadow-sm text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    onClick={() => setActiveTab('users')}
+                                >
+                                    <Users className="mr-2 h-4 w-4" /> Users
+                                </Button>
+                            </div>
+
+                            <div className="hidden md:flex items-center gap-2 md:gap-4">
+                                <Dialog open={isBroadcastOpen} onOpenChange={setIsBroadcastOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm" className="flex gap-2 px-2 md:px-4">
+                                            <BellRing className="h-4 w-4" />
+                                            <span className="hidden md:inline">Broadcast</span>
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Send Broadcast</DialogTitle>
+                                            <DialogDescription>
+                                                Send a notification to all users, owners, or everyone.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="target">Target Audience</Label>
+                                                <Select value={broadcastTarget} onValueChange={(v: any) => setBroadcastTarget(v)}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select audience" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">Everyone</SelectItem>
+                                                        <SelectItem value="owner">Venue Owners</SelectItem>
+                                                        <SelectItem value="user">Users</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="title">Title</Label>
+                                                <Input
+                                                    id="title"
+                                                    value={broadcastTitle}
+                                                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                                                    placeholder="Announcement Title"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="message">Message</Label>
+                                                <Textarea
+                                                    id="message"
+                                                    value={broadcastMessage}
+                                                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                                                    placeholder="Type your message here..."
+                                                />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button type="submit" onClick={handleBroadcast} disabled={isSending}>
+                                                {isSending ? "Sending..." : "Send Announcement"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+
+                                <NotificationBell />
+                                <SettingsMenu />
+                            </div>
                         </div>
                     </div>
                 </header>
 
                 <main className="container mx-auto px-6 py-10 space-y-10">
 
-                    {/* Stats Grid */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-                    >
-                        <Card
-                            onClick={() => { setFilterStatus('all'); }}
-                            className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'all' ? 'ring-2 ring-primary/30 bg-primary/5' : ''}`}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-                                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">Total Venues</CardTitle>
-                                <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
-                                    <Building2 className="h-4 w-4 text-primary" />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="relative z-10">
-                                <div className="text-3xl font-extrabold text-foreground group-hover:scale-105 transition-transform origin-left">{stats.total}</div>
-                                <p className="text-xs text-muted-foreground mt-1 font-medium">Registered on platform</p>
-                            </CardContent>
-                        </Card>
-                        <Card
-                            onClick={() => { setFilterStatus('approved'); }}
-                            className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-green-500/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'approved' ? 'ring-2 ring-green-500/30 bg-green-500/5' : ''}`}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-                                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-green-600 transition-colors">Active Listings</CardTitle>
-                                <div className="p-2 bg-green-500/10 rounded-full group-hover:bg-green-500/20 transition-colors">
-                                    <TrendingUp className="h-4 w-4 text-green-600" />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="relative z-10">
-                                <div className="text-3xl font-extrabold text-green-600 group-hover:scale-105 transition-transform origin-left">{stats.active}</div>
-                                <p className="text-xs text-muted-foreground mt-1 font-medium">Live and bookable</p>
-                            </CardContent>
-                        </Card>
-                        <Card
-                            onClick={() => { setFilterStatus('pending'); }}
-                            className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-orange-500/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'pending' ? 'ring-2 ring-orange-500/30 bg-orange-500/5' : ''}`}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-                                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-orange-600 transition-colors">Pending Review</CardTitle>
-                                <div className="p-2 bg-orange-500/10 rounded-full group-hover:bg-orange-500/20 transition-colors">
-                                    <Activity className="h-4 w-4 text-orange-600" />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="relative z-10">
-                                <div className="text-3xl font-extrabold text-orange-600 group-hover:scale-105 transition-transform origin-left">{stats.pending}</div>
-                                <p className="text-xs text-muted-foreground mt-1 font-medium">Awaiting approval</p>
-                            </CardContent>
-                        </Card>
-                        <Card
-                            onClick={() => { setFilterStatus('rejected'); }}
-                            className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-red-500/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'rejected' ? 'ring-2 ring-red-500/30 bg-red-500/5' : ''}`}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-                                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-red-600 transition-colors">Rejected</CardTitle>
-                                <div className="p-2 bg-red-500/10 rounded-full group-hover:bg-red-500/20 transition-colors">
-                                    <XCircle className="h-4 w-4 text-red-600" />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="relative z-10">
-                                <div className="text-3xl font-extrabold text-red-600 group-hover:scale-105 transition-transform origin-left">{stats.rejected}</div>
-                                <p className="text-xs text-muted-foreground mt-1 font-medium">Requires action</p>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Main Filtered Venue List */}
-                    <div className="space-y-6">
-                        <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-6 border-b border-border/40 pb-6">
-                            <div>
-                                <h2 className="text-3xl font-bold tracking-tight text-foreground">Venue Management</h2>
-                                <p className="text-muted-foreground mt-1">
-                                    Viewing <span className="font-semibold text-primary capitalize">{filterStatus}</span> venues
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Unified Grid */}
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {filteredVenues.map((venue, index) => (
-                                <motion.div
-                                    key={venue.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: index * 0.05 }}
+                    {activeTab === 'venues' ? (
+                        <>
+                            {/* Stats Grid */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                            >
+                                <Card
+                                    onClick={() => { setFilterStatus('all'); }}
+                                    className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'all' ? 'ring-2 ring-primary/30 bg-primary/5' : ''}`}
                                 >
-                                    {venue.status === 'pending' ? (
-                                        <VenueApprovalCard
-                                            venue={venue}
-                                            onViewDetails={() => navigate(`/admin/venues/${venue.id}`)}
-                                        />
-                                    ) : (
-                                        <VenueManageCard
-                                            venue={venue}
-                                            onPause={(e) => { e.stopPropagation(); updateVenueStatus(venue.id, venue.status === 'paused' ? 'approved' : 'paused'); }}
-                                            onDelete={(e) => { e.stopPropagation(); setVenueToDelete(venue.id); }}
-                                            onEdit={(e) => {
-                                                if (e) e.stopPropagation();
-                                                navigate(`/admin/venues/${venue.id}`);
-                                            }}
-                                            onApprove={(e) => { e.stopPropagation(); updateVenueStatus(venue.id, 'approved'); }}
-                                        />
-                                    )}
-                                </motion.div>
-                            ))}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">Total Venues</CardTitle>
+                                        <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
+                                            <Building2 className="h-4 w-4 text-primary" />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10">
+                                        <div className="text-3xl font-extrabold text-foreground group-hover:scale-105 transition-transform origin-left">{stats.total}</div>
+                                        <p className="text-xs text-muted-foreground mt-1 font-medium">Registered on platform</p>
+                                    </CardContent>
+                                </Card>
+                                <Card
+                                    onClick={() => { setFilterStatus('approved'); }}
+                                    className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-green-500/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'approved' ? 'ring-2 ring-green-500/30 bg-green-500/5' : ''}`}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-green-600 transition-colors">Active Listings</CardTitle>
+                                        <div className="p-2 bg-green-500/10 rounded-full group-hover:bg-green-500/20 transition-colors">
+                                            <TrendingUp className="h-4 w-4 text-green-600" />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10">
+                                        <div className="text-3xl font-extrabold text-green-600 group-hover:scale-105 transition-transform origin-left">{stats.active}</div>
+                                        <p className="text-xs text-muted-foreground mt-1 font-medium">Live and bookable</p>
+                                    </CardContent>
+                                </Card>
+                                <Card
+                                    onClick={() => { setFilterStatus('pending'); }}
+                                    className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-orange-500/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'pending' ? 'ring-2 ring-orange-500/30 bg-orange-500/5' : ''}`}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-orange-600 transition-colors">Pending Review</CardTitle>
+                                        <div className="p-2 bg-orange-500/10 rounded-full group-hover:bg-orange-500/20 transition-colors">
+                                            <Activity className="h-4 w-4 text-orange-600" />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10">
+                                        <div className="text-3xl font-extrabold text-orange-600 group-hover:scale-105 transition-transform origin-left">{stats.pending}</div>
+                                        <p className="text-xs text-muted-foreground mt-1 font-medium">Awaiting approval</p>
+                                    </CardContent>
+                                </Card>
+                                <Card
+                                    onClick={() => { setFilterStatus('rejected'); }}
+                                    className={`bg-card/40 backdrop-blur-xl border-border/40 shadow-sm hover:shadow-xl hover:shadow-red-500/5 transition-all cursor-pointer relative overflow-hidden group ${filterStatus === 'rejected' ? 'ring-2 ring-red-500/30 bg-red-500/5' : ''}`}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider group-hover:text-red-600 transition-colors">Rejected</CardTitle>
+                                        <div className="p-2 bg-red-500/10 rounded-full group-hover:bg-red-500/20 transition-colors">
+                                            <XCircle className="h-4 w-4 text-red-600" />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10">
+                                        <div className="text-3xl font-extrabold text-red-600 group-hover:scale-105 transition-transform origin-left">{stats.rejected}</div>
+                                        <p className="text-xs text-muted-foreground mt-1 font-medium">Requires action</p>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
 
-                            {filteredVenues.length === 0 && (
-                                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-70">
-                                    <div className="bg-secondary/20 p-6 rounded-full mb-4">
-                                        <Grid className="h-10 w-10 text-muted-foreground" />
+                            {/* Main Filtered Venue List */}
+                            <div className="space-y-6">
+                                <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-6 border-b border-border/40 pb-6">
+                                    <div>
+                                        <h2 className="text-3xl font-bold tracking-tight text-foreground">Venue Management</h2>
+                                        <p className="text-muted-foreground mt-1">
+                                            Viewing <span className="font-semibold text-primary capitalize">{filterStatus}</span> venues
+                                        </p>
                                     </div>
-                                    <h3 className="text-xl font-semibold">No venues found</h3>
-                                    <p className="text-muted-foreground">Try selecting a different status filter.</p>
                                 </div>
-                            )}
-                        </div>
-                    </div>
+
+                                {/* Unified Grid */}
+                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    {filteredVenues.map((venue, index) => (
+                                        <motion.div
+                                            key={venue.id}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: index * 0.05 }}
+                                        >
+                                            {venue.status === 'pending' ? (
+                                                <VenueApprovalCard
+                                                    venue={venue}
+                                                    onViewDetails={() => navigate(`/admin/venues/${venue.id}`)}
+                                                />
+                                            ) : (
+                                                <VenueManageCard
+                                                    venue={venue}
+                                                    onPause={(e) => { e.stopPropagation(); updateVenueStatus(venue.id, venue.status === 'paused' ? 'approved' : 'paused'); }}
+                                                    onDelete={(e) => { e.stopPropagation(); setVenueToDelete(venue.id); }}
+                                                    onEdit={(e) => {
+                                                        if (e) e.stopPropagation();
+                                                        navigate(`/admin/venues/${venue.id}`);
+                                                    }}
+                                                    onApprove={(e) => { e.stopPropagation(); updateVenueStatus(venue.id, 'approved'); }}
+                                                />
+                                            )}
+                                        </motion.div>
+                                    ))}
+
+                                    {filteredVenues.length === 0 && (
+                                        <div className="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-70">
+                                            <div className="bg-secondary/20 p-6 rounded-full mb-4">
+                                                <Grid className="h-10 w-10 text-muted-foreground" />
+                                            </div>
+                                            <h3 className="text-xl font-semibold">No venues found</h3>
+                                            <p className="text-muted-foreground">Try selecting a different status filter.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <UserManagementTab activeTab={activeTab} />
+                    )}
                 </main>
             </div >
 
