@@ -23,6 +23,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Switch } from '@/components/ui/switch';
+import { usePushSubscription } from '@/hooks/usePushSubscription';
+import { Bell } from 'lucide-react';
 
 const SECURITY_QUESTIONS = [
   "What was the name of your first pet?",
@@ -38,6 +41,8 @@ const MyProfile = () => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const { isSubscribed, subscribe, unsubscribe, loading: pushLoading } = usePushSubscription();
 
   // Editing State
   const [isEditing, setIsEditing] = useState(false);
@@ -568,6 +573,29 @@ const MyProfile = () => {
           </CardContent>
         </Card>
 
+        {/* Notifications Section */}
+        <Card className="shadow-lg border-primary/10 mb-8">
+          <CardHeader>
+            <CardTitle className="text-xl text-primary flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-xl">
+              <div>
+                <h3 className="font-medium">Push Notifications</h3>
+                <p className="text-sm text-muted-foreground">Receive updates about your bookings</p>
+              </div>
+              <Switch
+                checked={isSubscribed}
+                onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
+                disabled={pushLoading}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Danger Zone */}
         <Card className="shadow-lg border-red-200">
           <CardHeader>
@@ -585,7 +613,7 @@ const MyProfile = () => {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </div >
   );
 };
 

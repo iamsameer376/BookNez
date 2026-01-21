@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { PasswordInput } from '@/components/ui/password-input';
+import { usePushSubscription } from '@/hooks/usePushSubscription';
 
 const LoginUser = () => {
   const [phoneOrEmail, setPhoneOrEmail] = useState('');
@@ -18,6 +19,7 @@ const LoginUser = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, userRoles, setActiveRole } = useAuth();
+  const { subscribe } = usePushSubscription();
 
   useEffect(() => {
     // If logged in and has user role, go to dashboard
@@ -84,6 +86,10 @@ const LoginUser = () => {
       });
 
       setActiveRole('user');
+
+      // Auto-subscribe to push notifications
+      subscribe(data.user.id);
+
       navigate('/dashboard/user');
     } catch (error) {
       console.error("Login error:", error);

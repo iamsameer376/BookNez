@@ -9,7 +9,6 @@ import { MapPin, Search, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'; 
 import { CategoryGrid } from '@/components/CategoryGrid';
 import { SettingsMenu } from '@/components/SettingsMenu';
 import { NotificationBell } from '@/components/NotificationBell';
-import { PushNotificationManager } from '@/components/PushNotificationManager';
 import { VenueCard, VenueCardSkeleton } from '@/components/VenueCard'; // Added Skeleton
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -147,14 +146,12 @@ const DashboardUser = () => {
 
                 {/* Icons (Mobile only, desktop handled below) */}
                 <div className="flex md:hidden items-center gap-1.5 shrink-0">
-                  <PushNotificationManager />
                   <NotificationBell />
                   <SettingsMenu />
                 </div>
 
                 {/* Desktop Icons Placeholder (Hidden on mobile) */}
                 <div className="hidden md:flex items-center gap-2 shrink-0">
-                  <PushNotificationManager />
                   <NotificationBell />
                   <SettingsMenu />
                 </div>
