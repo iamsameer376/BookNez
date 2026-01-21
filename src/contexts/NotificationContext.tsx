@@ -24,10 +24,8 @@ type NotificationContextType = {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 // Simple Ding Sound (Base64 MP3 for immediate feedback without asset dependency)
-const NOTIFICATION_SOUND = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAADAAALMAAA//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAADAAALMAAA//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAADAAALMAAA//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAADAAALMAAA"; // Placeholder, will replace with better ding if needed, or user can add file. 
-// Actually, let's use a real short beep data URI or just rely on a file if present.
-// For now, I'll use a standard file path and fail gracefully.
-const SOUND_FILE = "/notification.mp3";
+// Premium sound file
+const NOTIFICATION_SOUND = "/notification.mp3";
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
     const { user } = useAuth();
