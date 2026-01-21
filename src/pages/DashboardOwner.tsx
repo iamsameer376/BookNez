@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Building2, Calendar, IndianRupee, QrCode, Settings, Star, ChevronRight, MapPin } from 'lucide-react';
+import { usePushSubscription } from '@/hooks/usePushSubscription';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 import { motion } from 'framer-motion';
@@ -31,6 +32,7 @@ const item = {
 const DashboardOwner = () => {
   const { user, userRoles, userName, userCity, loading } = useAuth();
   const { location: userGeoLocation, getLocation } = useGeoLocation();
+  const { subscribe } = usePushSubscription();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
@@ -45,7 +47,12 @@ const DashboardOwner = () => {
     if (!loading && (!user || !userRoles.includes('owner'))) {
       navigate('/login/owner');
     }
-  }, [user, userRoles, loading, navigate]);
+
+    // Auto-subscribe to push notifications
+    if (!loading && user) {
+      subscribe(user.id);
+    }
+  }, [user, userRoles, loading, navigate, subscribe]);
 
   const fetchStats = useCallback(async () => {
     try {

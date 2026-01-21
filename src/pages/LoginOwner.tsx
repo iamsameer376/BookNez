@@ -96,10 +96,8 @@ const LoginOwner = () => {
         }
       }
 
-      if (!roles.includes('owner')) {
-        await supabase.auth.signOut();
-        throw new Error('Access denied. Owner privileges required.');
-      }
+      // Access check removed to allow new owners to proceed
+      // if (!roles.includes('owner')) { ... }
 
       toast({
         title: "Login successful!",
