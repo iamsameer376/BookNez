@@ -39,9 +39,12 @@ interface Venue {
   review_count: number;
 }
 
+import { usePushSubscription } from '@/hooks/usePushSubscription';
+
 const DashboardUser = () => {
   const { user, userRoles, userName, userCity, loading } = useAuth();
   const navigate = useNavigate();
+  const { subscribe, permission } = usePushSubscription();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [nearbyVenues, setNearbyVenues] = useState<Venue[]>([]);
   const [isLoadingVenues, setIsLoadingVenues] = useState(true); // Added loading state
@@ -55,6 +58,13 @@ const DashboardUser = () => {
       navigate('/login/user');
     }
   }, [user, userRoles, loading, navigate]);
+
+  useEffect(() => {
+    // Attempt auto-subscribe if permission is not yet decided
+    if (user && permission === 'default') {
+      subscribe();
+    }
+  }, [user, permission]);
 
   useEffect(() => {
     fetchNearbyVenues();
@@ -163,7 +173,7 @@ const DashboardUser = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     placeholder="Search for turf, cricket, swimming..."
-                    className="pl-10 h-10 bg-secondary/10 border-transparent focus-visible:bg-background focus-visible:border-primary/20 transition-all rounded-xl text-sm"
+                    className="pl-10 h-10 bg-secondary/10 border-transparent focus-visible:bg-background focus-visible:border-primary/20 transition-all rounded-xl text-base"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
