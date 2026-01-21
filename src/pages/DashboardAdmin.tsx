@@ -220,6 +220,7 @@ const UserManagementTab = ({ activeTab }: { activeTab: string }) => {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>('all');
     const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'owner' | 'admin'>('all');
 
     useEffect(() => {
@@ -312,8 +313,14 @@ const UserManagementTab = ({ activeTab }: { activeTab: string }) => {
             user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (user.phone && user.phone.includes(searchQuery));
+
         const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-        return matchesSearch && matchesRole;
+
+        const matchesStatus =
+            statusFilter === 'all' ||
+            (statusFilter === 'banned' ? user.is_banned : !user.is_banned);
+
+        return matchesSearch && matchesRole && matchesStatus;
     });
 
     if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-20 bg-card/50 animate-pulse rounded-xl" />)}</div>;
@@ -330,17 +337,30 @@ const UserManagementTab = ({ activeTab }: { activeTab: string }) => {
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
-                    <SelectTrigger className="w-full md:w-48 bg-background/50">
-                        <SelectValue placeholder="Filter by Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="user">Users</SelectItem>
-                        <SelectItem value="owner">Owners</SelectItem>
-                        <SelectItem value="admin">Admins</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+                        <SelectTrigger className="w-full md:w-40 bg-background/50">
+                            <SelectValue placeholder="Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Roles</SelectItem>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="owner">Owner</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                        <SelectTrigger className="w-full md:w-40 bg-background/50">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="banned">Banned</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             <div className="grid gap-4">
@@ -505,12 +525,20 @@ const DashboardAdmin = () => {
             // Notify Owner
             const venue = allVenues.find(v => v.id === venueId);
             if (venue) {
-                await supabase.from('notifications').insert({
+                const notificationPayload = {
                     recipient_id: venue.owner_id,
                     title: "Venue Status Update",
                     message: `Your venue "${venue.name}" has been ${status}.`,
                     type: "info",
-                    link: `/owner/venues/${venueId}/edit` // Direct link to check
+                    link: `/owner/venues/${venueId}/edit`
+                };
+
+                // 1. Insert into DB (for history)
+                await supabase.from('notifications').insert(notificationPayload);
+
+                // 2. Trigger Push Notification (Directly)
+                await supabase.functions.invoke('push', {
+                    body: { record: notificationPayload }
                 });
             }
 
@@ -526,13 +554,21 @@ const DashboardAdmin = () => {
     const deleteVenue = async (venueId: string) => {
         try {
             // Notify Owner before deletion (so we have the data)
+            // Notify Owner before deletion (so we have the data)
             const venue = allVenues.find(v => v.id === venueId);
             if (venue) {
-                await supabase.from('notifications').insert({
+                const notificationPayload = {
                     recipient_id: venue.owner_id,
                     title: "Venue Deleted",
                     message: `Your venue "${venue.name}" has been permanently deleted by the administrator.`,
                     type: "alert"
+                };
+
+                await supabase.from('notifications').insert(notificationPayload);
+
+                // Trigger Push
+                await supabase.functions.invoke('push', {
+                    body: { record: notificationPayload }
                 });
             }
 
