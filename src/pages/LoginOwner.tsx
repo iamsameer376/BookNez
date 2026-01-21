@@ -74,7 +74,27 @@ const LoginOwner = () => {
         throw new Error('Error checking user role');
       }
 
-      const roles = rolesData?.map(r => r.role) || [];
+      let roles = rolesData?.map(r => r.role) || [];
+
+      // Check if user is actually an owner but missing the role (Fallback)
+      if (!roles.includes('owner')) {
+        const { data: venueData } = await supabase
+          .from('venues')
+          .select('id')
+          .eq('owner_id', data.user.id)
+          .maybeSingle();
+
+        if (venueData) {
+          // Auto-fix: Add owner role
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({ user_id: data.user.id, role: 'owner' });
+
+          if (!insertError) {
+            roles.push('owner');
+          }
+        }
+      }
 
       if (!roles.includes('owner')) {
         await supabase.auth.signOut();
