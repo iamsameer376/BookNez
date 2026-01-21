@@ -22,25 +22,28 @@ L.Icon.Default.mergeOptions({
 interface LocationPickerProps {
     onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
     initialLocation?: { lat: number; lng: number } | null;
+    readOnly?: boolean;
 }
 
-const LocationMarker = ({ position, onPositionChange }: { position: L.LatLng | null, onPositionChange: (lat: number, lng: number) => void }) => {
+const LocationMarker = ({ position, onPositionChange, readOnly }: { position: L.LatLng | null, onPositionChange: (lat: number, lng: number) => void, readOnly?: boolean }) => {
     const map = useMapEvents({
         click(e) {
-            onPositionChange(e.latlng.lat, e.latlng.lng);
+            if (!readOnly) {
+                onPositionChange(e.latlng.lat, e.latlng.lng);
+            }
         },
     });
 
     useEffect(() => {
         if (position) {
-            map.flyTo(position, map.getZoom());
+            map.setView(position, map.getZoom());
         }
     }, [position, map]);
 
     return position ? <Marker position={position} /> : null;
 };
 
-export const LocationPicker = ({ onLocationSelect, initialLocation }: LocationPickerProps) => {
+export const LocationPicker = ({ onLocationSelect, initialLocation, readOnly = false }: LocationPickerProps) => {
     const [position, setPosition] = useState<L.LatLng | null>(
         initialLocation ? new L.LatLng(initialLocation.lat, initialLocation.lng) : null
     );
@@ -50,6 +53,13 @@ export const LocationPicker = ({ onLocationSelect, initialLocation }: LocationPi
 
     // Default center (Bangalore) if no initial location
     const defaultCenter = { lat: 12.9716, lng: 77.5946 };
+
+    // Update position if initialLocation changes (important for viewing different venues)
+    useEffect(() => {
+        if (initialLocation) {
+            setPosition(new L.LatLng(initialLocation.lat, initialLocation.lng));
+        }
+    }, [initialLocation]);
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
@@ -129,6 +139,8 @@ export const LocationPicker = ({ onLocationSelect, initialLocation }: LocationPi
     };
 
     const handleMapClick = async (lat: number, lng: number) => {
+        if (readOnly) return;
+
         setPosition(new L.LatLng(lat, lng));
         try {
             // Optional: Reverse geocode on click too, or just send coords
@@ -145,24 +157,26 @@ export const LocationPicker = ({ onLocationSelect, initialLocation }: LocationPi
 
     return (
         <div className="space-y-4">
-            <div className="flex gap-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search for area, city..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-8"
-                    />
+            {!readOnly && (
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search for area, city..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            className="pl-8"
+                        />
+                    </div>
+                    <Button variant="outline" onClick={handleSearch} disabled={loading}>
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                    </Button>
+                    <Button variant="secondary" onClick={handleCurrentLocation} disabled={loading} title="Use Current Location">
+                        <Navigation className="h-4 w-4" />
+                    </Button>
                 </div>
-                <Button variant="outline" onClick={handleSearch} disabled={loading}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                </Button>
-                <Button variant="secondary" onClick={handleCurrentLocation} disabled={loading} title="Use Current Location">
-                    <Navigation className="h-4 w-4" />
-                </Button>
-            </div>
+            )}
 
             <div className="h-[300px] w-full rounded-md overflow-hidden border z-0 relative">
                 <MapContainer
@@ -178,6 +192,7 @@ export const LocationPicker = ({ onLocationSelect, initialLocation }: LocationPi
                     <LocationMarker
                         position={position}
                         onPositionChange={handleMapClick}
+                        readOnly={readOnly}
                     />
                 </MapContainer>
 

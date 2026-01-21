@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, Search, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'; // Added Sparkles
+import { MapPin, Search, ArrowLeft, ArrowRight, Sparkles, Star } from 'lucide-react'; // Added Sparkles and Star
 import { CategoryGrid } from '@/components/CategoryGrid';
 import { SettingsMenu } from '@/components/SettingsMenu';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -47,6 +47,7 @@ const DashboardUser = () => {
   const { subscribe, permission } = usePushSubscription();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [nearbyVenues, setNearbyVenues] = useState<Venue[]>([]);
+  const [featuredVenues, setFeaturedVenues] = useState<Venue[]>([]);
   const [isLoadingVenues, setIsLoadingVenues] = useState(true); // Added loading state
   const [searchQuery, setSearchQuery] = useState('');
   const { location: userGeoLocation, getLocation } = useGeoLocation();
@@ -79,17 +80,31 @@ const DashboardUser = () => {
   const fetchNearbyVenues = async () => {
     try {
       setIsLoadingVenues(true);
-      const { data, error } = await supabase
-        .from('venues')
-        .select('*')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .limit(8);
 
-      if (error) throw error;
-      setNearbyVenues(data as any);
+      const [nearbyResponse, featuredResponse] = await Promise.all([
+        supabase
+          .from('venues')
+          .select('*')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(8),
+        supabase
+          .from('venues')
+          .select('*')
+          .eq('is_featured', true)
+          .eq('status', 'approved')
+          .limit(5)
+      ]);
+
+      if (nearbyResponse.error) throw nearbyResponse.error;
+      setNearbyVenues(nearbyResponse.data as any);
+
+      if (!featuredResponse.error && featuredResponse.data) {
+        setFeaturedVenues(featuredResponse.data as any);
+      }
+
     } catch (error) {
-      console.error('Error fetching nearby venues:', error);
+      console.error('Error fetching venues:', error);
     } finally {
       setIsLoadingVenues(false);
     }
@@ -198,8 +213,49 @@ const DashboardUser = () => {
             <CategoryGrid onSelectCategory={handleCategorySelect} selectedCategory={selectedCategory} />
           </section >
 
+
+          {/* Featured Venues Carousel */}
+          {featuredVenues.length > 0 && (
+            <section className="container mx-auto px-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 animate-pulse" />
+                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-500 to-orange-500">
+                  Featured Venues
+                </h2>
+              </div>
+              <Carousel
+                opts={{ align: "start", loop: true }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-4">
+                  {featuredVenues.map((venue) => (
+                    <CarouselItem key={venue.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                      <motion.div whileHover={{ y: -5 }} className="h-full">
+                        <div className="relative group rounded-xl overflow-hidden border-2 border-yellow-500/20 shadow-lg hover:shadow-yellow-500/10 transition-all h-full">
+                          <VenueCard
+                            id={venue.id}
+                            name={venue.name}
+                            image={venue.photos[0] || '/placeholder.svg'}
+                            rating={venue.average_rating || 0}
+                            price={Number(venue.pricing)}
+                            distance={null}
+                            category={venue.category}
+                            amenities={venue.amenities.slice(0, 3)}
+                          />
+                          <div className="absolute top-2 right-2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider z-10">
+                            Featured
+                          </div>
+                        </div>
+                      </motion.div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </section>
+          )}
+
           {/* Nearby Venues Carousel */}
-          < section className="container mx-auto px-4 pb-8" >
+          <section className="container mx-auto px-4 pb-8" >
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold">Recommended Near You</h2>

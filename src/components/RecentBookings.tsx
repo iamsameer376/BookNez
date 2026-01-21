@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, MapPin, QrCode } from 'lucide-react';
+import { Calendar, Clock, MapPin, QrCode, XCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import QRCode from 'qrcode';
 
@@ -258,20 +258,34 @@ export const RecentBookings = () => {
               </div>
 
               <div className="flex flex-col items-center bg-white p-4 rounded-lg">
-                {(selectedBooking.qr_code || generatedQr) ? (
-                  <img
-                    src={selectedBooking.qr_code || generatedQr}
-                    alt="Booking QR Code"
-                    className="w-48 h-48"
-                  />
+                {selectedBooking.status === 'confirmed' ? (
+                  <>
+                    {(selectedBooking.qr_code || generatedQr) ? (
+                      <img
+                        src={selectedBooking.qr_code || generatedQr}
+                        alt="Booking QR Code"
+                        className="w-48 h-48"
+                      />
+                    ) : (
+                      <div className="w-48 h-48 flex items-center justify-center text-muted-foreground">
+                        Generating QR...
+                      </div>
+                    )}
+                    <p className="font-mono text-xs font-bold mt-2 text-center tracking-widest text-slate-500">
+                      {selectedBooking.id}
+                    </p>
+                  </>
                 ) : (
-                  <div className="w-48 h-48 flex items-center justify-center text-muted-foreground">
-                    Generating QR...
+                  <div className="w-48 h-48 flex flex-col items-center justify-center text-muted-foreground bg-muted/20 rounded-lg">
+                    <div className={`p-3 rounded-full mb-2 ${selectedBooking.status === 'cancelled' ? 'bg-red-100 text-red-500' : 'bg-gray-100'}`}>
+                      {selectedBooking.status === 'cancelled' ? <XCircle className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
+                    </div>
+                    <p className="text-sm font-medium">QR Code Unavailable</p>
+                    <p className="text-xs mt-1 opacity-70">
+                      Booking is {selectedBooking.status}
+                    </p>
                   </div>
                 )}
-                <p className="font-mono text-xs font-bold mt-2 text-center tracking-widest text-slate-500">
-                  {selectedBooking.id}
-                </p>
               </div>
 
               <div className="space-y-3 text-sm">

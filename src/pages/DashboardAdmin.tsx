@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,12 +6,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { XCircle, MapPin, Clock, Activity, TrendingUp, Building2, Grid, Search, Users, Mail, Phone, Lock, Unlock } from 'lucide-react';
+import { XCircle, MapPin, Clock, Activity, TrendingUp, Building2, Grid, Search, Users, Mail, Phone, Lock, Unlock, Calendar, User, Star } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import { motion } from 'framer-motion';
 
 import { SettingsMenu } from '@/components/SettingsMenu';
 import { NotificationBell } from '@/components/NotificationBell';
+import { BannerManager } from '@/components/BannerManager';
+import { AnalyticsOverview } from '@/components/AnalyticsOverview';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -113,12 +115,13 @@ const VenueApprovalCard = ({ venue, onViewDetails }: { venue: any, onViewDetails
 );
 
 // Sub-component for All Venues
-const VenueManageCard = ({ venue, onPause, onDelete, onEdit, onApprove }: {
+const VenueManageCard = memo(({ venue, onPause, onDelete, onEdit, onApprove, onToggleFeatured }: {
     venue: any,
     onPause: (e: React.MouseEvent) => void,
     onDelete: (e: React.MouseEvent) => void,
     onEdit: (e?: React.MouseEvent) => void,
-    onApprove: (e: React.MouseEvent) => void
+    onApprove: (e: React.MouseEvent) => void,
+    onToggleFeatured: (val: boolean) => void
 }) => {
     const statusColors = {
         approved: "bg-green-500",
@@ -153,6 +156,18 @@ const VenueManageCard = ({ venue, onPause, onDelete, onEdit, onApprove }: {
                             <span className="capitalize">{venue.category}</span> • {venue.address}
                         </p>
                     </div>
+
+                    {/* Featured Toggle Overlay */}
+                    <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                            checked={venue.is_featured || false}
+                            onCheckedChange={(checked) => onToggleFeatured(checked)}
+                            className="scale-75 data-[state=checked]:bg-yellow-500"
+                        />
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${venue.is_featured ? 'text-yellow-400' : 'text-white/70'}`}>
+                            {venue.is_featured ? 'Featured' : 'Standard'}
+                        </span>
+                    </div>
                 </div>
 
                 <CardFooter className="p-3 bg-secondary/5 border-t border-border/10 grid grid-cols-3 gap-2">
@@ -183,9 +198,14 @@ const VenueManageCard = ({ venue, onPause, onDelete, onEdit, onApprove }: {
                     )}
                 </CardFooter>
             </Card>
-        </motion.div>
+        </motion.div >
     );
-};
+}, (prev, next) => {
+    return prev.venue.id === next.venue.id &&
+        prev.venue.status === next.venue.status &&
+        prev.venue.is_featured === next.venue.is_featured &&
+        prev.venue.name === next.venue.name;
+});
 
 const DashboardSkeleton = () => (
     <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 pb-20">
@@ -429,13 +449,236 @@ const UserManagementTab = ({ activeTab }: { activeTab: string }) => {
     );
 };
 
+// --- Sub-component for Booking Management ---
+const BookingManagementTab = ({ activeTab }: { activeTab: string }) => {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled' | 'completed'>('all');
+    const [cancellingId, setCancellingId] = useState<string | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
+
+    useEffect(() => {
+        if (activeTab === 'bookings' && user) {
+            fetchBookings();
+        }
+    }, [activeTab, user]);
+
+    const fetchBookings = async () => {
+        if (!user) return;
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    venues:venue_id (name, address),
+                    profiles:user_id (full_name, email, phone)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setBookings(data || []);
+        } catch (error: any) {
+            console.error('Error fetching bookings:', error);
+            toast({ title: "Error", description: "Failed to load bookings", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCancelBooking = async () => {
+        if (!cancellingId || !cancelReason.trim()) return;
+
+        try {
+            // Optimistic update
+            setBookings(prev => prev.map(b => b.id === cancellingId ? { ...b, status: 'cancelled' } : b));
+
+            const { error } = await supabase
+                .from('bookings')
+                .update({ status: 'cancelled' })
+                .eq('id', cancellingId);
+
+            if (error) throw error;
+
+            // Notify User
+            const booking = bookings.find(b => b.id === cancellingId);
+            if (booking) {
+                const notificationPayload = {
+                    recipient_id: booking.user_id,
+                    title: "Booking Cancelled by Admin",
+                    message: `Your booking for ${booking.venues?.name} on ${booking.booking_date} has been cancelled. Reason: ${cancelReason}`,
+                    type: "alert"
+                };
+
+                // Notify Owner too
+                /* Note: We'd need owner_id from venue, but we only selected name/address. 
+                   Ideally we fetch it, but for now we notify the user which is most critical. */
+
+                await supabase.from('notifications').insert(notificationPayload);
+            }
+
+            toast({ title: "Booking Cancelled", description: "User has been notified." });
+            setCancellingId(null);
+            setCancelReason('');
+        } catch (error: any) {
+            console.error('Error cancelling booking:', error);
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+            fetchBookings(); // Revert
+        }
+    };
+
+    const filteredBookings = useMemo(() => {
+        return bookings.filter(booking => {
+            const searchLower = searchQuery.toLowerCase();
+            const matchesSearch =
+                booking.id.toLowerCase().includes(searchLower) ||
+                booking.venues?.name?.toLowerCase().includes(searchLower) ||
+                booking.profiles?.full_name?.toLowerCase().includes(searchLower) ||
+                booking.profiles?.email?.toLowerCase().includes(searchLower);
+
+            const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [bookings, searchQuery, statusFilter]);
+
+    const statusBadgeColors: Record<string, string> = {
+        confirmed: "bg-green-500/10 text-green-600 border-green-200",
+        pending: "bg-orange-500/10 text-orange-600 border-orange-200",
+        cancelled: "bg-red-500/10 text-red-600 border-red-200",
+        completed: "bg-blue-500/10 text-blue-600 border-blue-200"
+    };
+
+    if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-24 bg-card/50 animate-pulse rounded-xl" />)}</div>;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-card/40 p-4 rounded-xl border border-border/40 backdrop-blur-sm">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search bookings by venue, user, or ID..."
+                        className="pl-9 bg-background/50 border-border/50"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                    <SelectTrigger className="w-full md:w-40 bg-background/50">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-4">
+                {filteredBookings.map((booking) => (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={booking.id}
+                    >
+                        <Card className="overflow-hidden hover:shadow-md transition-shadow bg-card/60 backdrop-blur-sm border-border/50">
+                            <CardContent className="p-0">
+                                <div className="flex flex-col md:flex-row">
+                                    {/* Date & Time Column */}
+                                    <div className="bg-secondary/10 p-4 md:w-48 flex flex-col justify-center items-center text-center border-b md:border-b-0 md:border-r border-border/50">
+                                        <div className="text-2xl font-bold text-foreground">{new Date(booking.booking_date).getDate()}</div>
+                                        <div className="text-sm font-medium uppercase text-muted-foreground">{new Date(booking.booking_date).toLocaleString('default', { month: 'short' })}</div>
+                                        <div className="mt-2 text-xs font-medium bg-background/50 px-2 py-1 rounded-full border border-border/50">
+                                            {booking.start_time || booking.booking_time}
+                                        </div>
+                                    </div>
+
+                                    {/* Details Column */}
+                                    <div className="flex-1 p-4 flex flex-col justify-center gap-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <h4 className="font-semibold text-lg">{booking.venues?.name || 'Unknown Venue'}</h4>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                                    <User className="h-3.5 w-3.5" />
+                                                    {booking.profiles?.full_name || 'Guest User'}
+                                                </div>
+                                            </div>
+                                            <Badge variant="outline" className={`capitalize ${statusBadgeColors[booking.status] || 'bg-secondary'}`}>
+                                                {booking.status}
+                                            </Badge>
+                                        </div>
+                                        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                ID: <span className="font-mono">{booking.id.slice(0, 8)}...</span>
+                                            </span>
+                                            <span className="font-semibold text-primary">₹{booking.amount}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions Column */}
+                                    <div className="p-4 flex items-center justify-end border-t md:border-t-0 md:border-l border-border/50 gap-2">
+                                        {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                                            <Dialog open={cancellingId === booking.id} onOpenChange={(open) => !open && setCancellingId(null)}>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={() => setCancellingId(booking.id)}>
+                                                        Cancel
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Cancel Booking?</DialogTitle>
+                                                        <DialogDescription>
+                                                            Please provide a reason for cancelling this booking. The user will be notified.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="py-4">
+                                                        <Label>Reason for Cancellation</Label>
+                                                        <Textarea
+                                                            placeholder="e.g. Venue maintenance required..."
+                                                            value={cancelReason}
+                                                            onChange={(e) => setCancelReason(e.target.value)}
+                                                            className="mt-2"
+                                                        />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <Button variant="outline" onClick={() => setCancellingId(null)}>Close</Button>
+                                                        <Button variant="destructive" onClick={handleCancelBooking} disabled={!cancelReason.trim()}>
+                                                            Confirm Cancellation
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                ))}
+
+                {filteredBookings.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                        <p>No bookings found matching criteria.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const DashboardAdmin = () => {
     const { user, signOut, hasRole } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
     const [allVenues, setAllVenues] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'venues' | 'users'>('venues');
+    const [activeTab, setActiveTab] = useState<'overview' | 'venues' | 'users' | 'bookings' | 'content'>('overview');
 
     // Venue related state
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -510,7 +753,7 @@ const DashboardAdmin = () => {
         } catch (error) { console.error(error); } finally { setLoading(false); }
     };
 
-    const updateVenueStatus = async (venueId: string, status: 'approved' | 'rejected' | 'paused') => {
+    const updateVenueStatus = useCallback(async (venueId: string, status: 'approved' | 'rejected' | 'paused') => {
         // 1. Optimistic Update (Immediate Feedback)
         setAllVenues(prev => prev.map(v => v.id === venueId ? { ...v, status } : v));
         toast({ title: "Updated", description: `Venue marked as ${status}.` });
@@ -547,9 +790,28 @@ const DashboardAdmin = () => {
             toast({ title: "Error", description: msg, variant: "destructive" });
             fetchVenues(); // Revert optimistic update on error
         }
-    };
+    }, [allVenues, toast]);
 
-    const deleteVenue = async (venueId: string) => {
+    const toggleFeaturedVenue = useCallback(async (venueId: string, currentStatus: boolean) => {
+        try {
+            // Optimistic update
+            setAllVenues(prev => prev.map(v => v.id === venueId ? { ...v, is_featured: !currentStatus } : v));
+
+            const { error } = await supabase
+                .from('venues')
+                .update({ is_featured: !currentStatus })
+                .eq('id', venueId);
+
+            if (error) throw error;
+
+            toast({ title: "Updated", description: `Venue is now ${!currentStatus ? 'Featured' : 'Not Featured'}` });
+        } catch (error: any) {
+            toast({ title: "Error", description: "Failed to update featured status", variant: "destructive" });
+            fetchVenues(); // Revert
+        }
+    }, [toast]);
+
+    const deleteVenue = useCallback(async (venueId: string) => {
         // 1. Optimistic Update
         const previousVenues = [...allVenues];
         setAllVenues(prev => prev.filter(v => v.id !== venueId));
@@ -601,7 +863,7 @@ const DashboardAdmin = () => {
             toast({ title: "Error", description: "Could not delete venue. Reverting.", variant: "destructive" });
             setAllVenues(previousVenues); // Revert optimistic update
         }
-    };
+    }, [allVenues, toast]);
 
     if (loading && allVenues.length === 0) return <DashboardSkeleton />;
 
@@ -637,8 +899,16 @@ const DashboardAdmin = () => {
                         {/* Desktop Header Actions + Tabs Wrapper */}
                         <div className="flex flex-col-reverse md:flex-row items-center gap-4 w-full md:w-auto">
 
-                            {/* Tabs */}
-                            <div className="flex items-center bg-secondary/50 p-1 rounded-lg border border-border/50 self-start md:self-auto w-full md:w-auto">
+                            {/* Tabs - Hidden (Moved to Footer) */}
+                            <div className="hidden">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-md flex-1 md:w-28 transition-all ${activeTab === 'overview' ? 'bg-background shadow-sm text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    onClick={() => setActiveTab('overview')}
+                                >
+                                    <Activity className="mr-2 h-4 w-4" /> Overview
+                                </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -654,6 +924,22 @@ const DashboardAdmin = () => {
                                     onClick={() => setActiveTab('users')}
                                 >
                                     <Users className="mr-2 h-4 w-4" /> Users
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-md flex-1 md:w-28 transition-all ${activeTab === 'bookings' ? 'bg-background shadow-sm text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    onClick={() => setActiveTab('bookings')}
+                                >
+                                    <Calendar className="mr-2 h-4 w-4" /> Bookings
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-md flex-1 md:w-28 transition-all ${activeTab === 'content' ? 'bg-background shadow-sm text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    onClick={() => setActiveTab('content')}
+                                >
+                                    <Star className="mr-2 h-4 w-4" /> Content
                                 </Button>
                             </div>
 
@@ -831,6 +1117,7 @@ const DashboardAdmin = () => {
                                                         navigate(`/admin/venues/${venue.id}`);
                                                     }}
                                                     onApprove={(e) => { e.stopPropagation(); updateVenueStatus(venue.id, 'approved'); }}
+                                                    onToggleFeatured={(val) => toggleFeaturedVenue(venue.id, !val)} // Note: val is the NEW state, function expects CURRENT status to toggle. Wait, logic above was !current. Let's fix.
                                                 />
                                             )}
                                         </motion.div>
@@ -848,11 +1135,76 @@ const DashboardAdmin = () => {
                                 </div>
                             </div>
                         </>
-                    ) : (
+                    ) : activeTab === 'overview' ? (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                            <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
+                            <AnalyticsOverview />
+                        </motion.div>
+                    ) : activeTab === 'users' ? (
                         <UserManagementTab activeTab={activeTab} />
+                    ) : activeTab === 'bookings' ? (
+                        <BookingManagementTab activeTab={activeTab} />
+                    ) : (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                            <h2 className="text-3xl font-bold tracking-tight">Content Management</h2>
+                            <BannerManager />
+                        </motion.div>
                     )}
                 </main>
             </div >
+
+            {/* Fixed Bottom Navigation */}
+            <div className="fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-lg border-t border-border/50 p-2 z-50 flex justify-center">
+                <div className="grid grid-cols-5 gap-1 w-full md:w-[600px]">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`flex flex-col items-center justify-center h-14 gap-1 rounded-xl transition-all ${activeTab === 'overview' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setActiveTab('overview')}
+                    >
+                        <Activity className={`h-5 w-5 ${activeTab === 'overview' && "fill-current"}`} />
+                        <span className="text-[10px] font-medium">Overview</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`flex flex-col items-center justify-center h-14 gap-1 rounded-xl transition-all ${activeTab === 'venues' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setActiveTab('venues')}
+                    >
+                        <Grid className={`h-5 w-5 ${activeTab === 'venues' && "fill-current"}`} />
+                        <span className="text-[10px] font-medium">Venues</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`flex flex-col items-center justify-center h-14 gap-1 rounded-xl transition-all ${activeTab === 'users' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setActiveTab('users')}
+                    >
+                        <Users className={`h-5 w-5 ${activeTab === 'users' && "fill-current"}`} />
+                        <span className="text-[10px] font-medium">Users</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`flex flex-col items-center justify-center h-14 gap-1 rounded-xl transition-all ${activeTab === 'bookings' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setActiveTab('bookings')}
+                    >
+                        <Calendar className={`h-5 w-5 ${activeTab === 'bookings' && "fill-current"}`} />
+                        <span className="text-[10px] font-medium">Bookings</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`flex flex-col items-center justify-center h-14 gap-1 rounded-xl transition-all ${activeTab === 'content' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setActiveTab('content')}
+                    >
+                        <Star className={`h-5 w-5 ${activeTab === 'content' && "fill-current"}`} />
+                        <span className="text-[10px] font-medium">Content</span>
+                    </Button>
+                </div>
+            </div>
+
+            <div className="h-20 md:hidden" /> {/* Spacer for footer */}
 
             <AlertDialog open={!!venueToDelete} onOpenChange={(open) => !open && setVenueToDelete(null)}>
                 <AlertDialogContent>

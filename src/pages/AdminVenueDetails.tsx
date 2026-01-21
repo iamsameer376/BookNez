@@ -41,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PageTransition from '@/components/PageTransition';
 import { motion } from 'framer-motion';
+import { LocationPicker } from '@/components/LocationPicker';
 
 const AdminVenueDetails = () => {
     const { id } = useParams();
@@ -408,8 +409,20 @@ const AdminVenueDetails = () => {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-sm text-muted-foreground">{venue.address}</p>
-                                        <div className="mt-4 h-32 bg-muted rounded-xl flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border">
-                                            Map Preview Unavailable
+                                        <div className="mt-4">
+                                            {venue.latitude && venue.longitude ? (
+                                                <div className="h-[300px] rounded-xl overflow-hidden shadow-sm border border-border/50">
+                                                    <LocationPicker
+                                                        initialLocation={{ lat: venue.latitude, lng: venue.longitude }}
+                                                        onLocationSelect={() => { }}
+                                                        readOnly
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="h-32 bg-muted rounded-xl flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border">
+                                                    Location coordinates not set
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
