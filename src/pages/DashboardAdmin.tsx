@@ -308,20 +308,22 @@ const UserManagementTab = ({ activeTab }: { activeTab: string }) => {
         }
     };
 
-    const filteredUsers = users.filter(user => {
-        const matchesSearch =
-            user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (user.phone && user.phone.includes(searchQuery));
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => {
+            const matchesSearch =
+                user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (user.phone && user.phone.includes(searchQuery));
 
-        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+            const matchesRole = roleFilter === 'all' || user.role === roleFilter;
 
-        const matchesStatus =
-            statusFilter === 'all' ||
-            (statusFilter === 'banned' ? user.is_banned : !user.is_banned);
+            const matchesStatus =
+                statusFilter === 'all' ||
+                (statusFilter === 'banned' ? user.is_banned : !user.is_banned);
 
-        return matchesSearch && matchesRole && matchesStatus;
-    });
+            return matchesSearch && matchesRole && matchesStatus;
+        });
+    }, [users, searchQuery, roleFilter, statusFilter]);
 
     if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-20 bg-card/50 animate-pulse rounded-xl" />)}</div>;
 
@@ -509,20 +511,20 @@ const DashboardAdmin = () => {
     };
 
     const updateVenueStatus = async (venueId: string, status: 'approved' | 'rejected' | 'paused') => {
+        // 1. Optimistic Update (Immediate Feedback)
+        setAllVenues(prev => prev.map(v => v.id === venueId ? { ...v, status } : v));
+        toast({ title: "Updated", description: `Venue marked as ${status}.` });
+
         try {
-            const { data, error } = await supabase
+            // 2. Perform DB Update
+            const { error } = await supabase
                 .from('venues')
                 .update({ status })
-                .eq('id', venueId)
-                .select();
+                .eq('id', venueId);
 
             if (error) throw error;
 
-            if (!data || data.length === 0) {
-                throw new Error("Permission denied: Unable to update venue status. Please check Database RLS policies.");
-            }
-
-            // Notify Owner
+            // 3. Fire-and-Forget Notifications (Don't await / block UI)
             const venue = allVenues.find(v => v.id === venueId);
             if (venue) {
                 const notificationPayload = {
@@ -533,59 +535,72 @@ const DashboardAdmin = () => {
                     link: `/owner/venues/${venueId}/edit`
                 };
 
-                // 1. Insert into DB (for history)
-                await supabase.from('notifications').insert(notificationPayload);
-
-                // 2. Trigger Push Notification (Directly)
-                await supabase.functions.invoke('push', {
-                    body: { record: notificationPayload }
-                });
+                // Run side-effects in background
+                Promise.all([
+                    supabase.from('notifications').insert(notificationPayload),
+                    supabase.functions.invoke('push', { body: { record: notificationPayload } })
+                ]).catch(err => console.error("Background notification error:", err));
             }
-
-            toast({ title: "Success", description: `Venue has been ${status}` });
-            fetchVenues();
         } catch (error: any) {
             console.error('Update error:', error);
             const msg = error.message || "Failed to update status";
             toast({ title: "Error", description: msg, variant: "destructive" });
+            fetchVenues(); // Revert optimistic update on error
         }
     };
 
     const deleteVenue = async (venueId: string) => {
+        // 1. Optimistic Update
+        const previousVenues = [...allVenues];
+        setAllVenues(prev => prev.filter(v => v.id !== venueId));
+        toast({ title: "Venue deleted", description: "Permanently removed." });
+        setVenueToDelete(null); // Close dialog immediately
+
         try {
-            // Notify Owner before deletion (so we have the data)
-            // Notify Owner before deletion (so we have the data)
-            const venue = allVenues.find(v => v.id === venueId);
-            if (venue) {
-                const notificationPayload = {
-                    recipient_id: venue.owner_id,
-                    title: "Venue Deleted",
-                    message: `Your venue "${venue.name}" has been permanently deleted by the administrator.`,
-                    type: "alert"
-                };
+            // 2. Background Operations
+            const venue = previousVenues.find(v => v.id === venueId);
 
-                await supabase.from('notifications').insert(notificationPayload);
+            // Prepare notification payload
+            const notificationPayload = venue ? {
+                recipient_id: venue.owner_id,
+                title: "Venue Deleted",
+                message: `Your venue "${venue.name}" has been permanently deleted by the administrator.`,
+                type: "alert"
+            } : null;
 
-                // Trigger Push
-                await supabase.functions.invoke('push', {
-                    body: { record: notificationPayload }
-                });
-            }
+            // Execute all DB operations in parallel where possible, keeping dependencies in mind
+            // Bookings and Pricing must be deleted before Venue due to foreign key constraints, 
+            // but we can start the notification parallel to the deletion flow.
 
-            const { error: bookingsError } = await supabase.from('bookings').delete().eq('venue_id', venueId);
-            if (bookingsError) throw bookingsError;
-            const { error: pricingError } = await supabase.from('venue_pricing').delete().eq('venue_id', venueId);
-            if (pricingError) throw pricingError;
+            const deleteOperations = async () => {
+                const { error: bookingsError } = await supabase.from('bookings').delete().eq('venue_id', venueId);
+                if (bookingsError) throw bookingsError;
 
-            const { data, error } = await supabase.from('venues').delete().eq('id', venueId).select();
-            if (error) throw error;
-            if (!data || data.length === 0) throw new Error("RLS Error");
-            toast({ title: "Venue deleted", description: "Permanently removed." });
-            fetchVenues();
+                const { error: pricingError } = await supabase.from('venue_pricing').delete().eq('venue_id', venueId);
+                if (pricingError) throw pricingError;
+
+                const { data, error } = await supabase.from('venues').delete().eq('id', venueId).select();
+                if (error) throw error;
+                if (!data || data.length === 0) throw new Error("RLS Error or Venue already deleted");
+            };
+
+            const notifyOperations = async () => {
+                if (notificationPayload) {
+                    await Promise.all([
+                        supabase.from('notifications').insert(notificationPayload),
+                        supabase.functions.invoke('push', { body: { record: notificationPayload } })
+                    ]);
+                }
+            };
+
+            // Run Delete and Notify concurrently (Notify doesn't depend on Venue existing in DB, just the ID/Data we already have)
+            await Promise.all([deleteOperations(), notifyOperations()]);
+
         } catch (error) {
-            console.error(error);
-            toast({ title: "Error", description: "Could not delete.", variant: "destructive" });
-        } finally { setVenueToDelete(null); }
+            console.error("Delete error:", error);
+            toast({ title: "Error", description: "Could not delete venue. Reverting.", variant: "destructive" });
+            setAllVenues(previousVenues); // Revert optimistic update
+        }
     };
 
     if (loading && allVenues.length === 0) return <DashboardSkeleton />;

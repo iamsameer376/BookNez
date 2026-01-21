@@ -52,7 +52,7 @@ const EditVenue = () => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
     try {
-      console.log('Fetching bookings for', dateStr);
+      // Fetching bookings
       // Fetch ALL bookings for this venue to debug
       const { data, error } = await supabase
         .from('bookings')
@@ -61,11 +61,11 @@ const EditVenue = () => {
 
       if (error) throw error;
 
-      console.log('ALL Venue Bookings:', data);
+      // Filtering bookings
 
       // Client-side filter using correct columns
       const todaysBookings = data.filter((b: any) => b.booking_date === dateStr && b.status !== 'cancelled');
-      console.log('Filtered for today:', todaysBookings);
+      // setTodaysBookings(todaysBookings); // Removed invalid state setter
 
       const normalizeSlot = (time: string) => {
         const clean = time.trim().toUpperCase();
@@ -147,7 +147,7 @@ const EditVenue = () => {
 
   const fetchVenue = useCallback(async () => {
     if (!id || !user?.id) return;
-    console.log('Fetching venue data for ID:', id); // DEBUG
+    // Fetching venue data
 
     try {
       let query = supabase
@@ -186,7 +186,7 @@ const EditVenue = () => {
 
   const handleUpdateVenue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    console.log('Saving venue changes...', venue); // DEBUG
+    setLoading(true);
     setSaving(true);
 
     try {
@@ -214,7 +214,7 @@ const EditVenue = () => {
         throw error;
       }
 
-      console.log('Update success'); // DEBUG
+      // Update success
 
       // Notify owner if edited by Admin
       if (hasRole('admin') && venue.owner_id !== user?.id) {

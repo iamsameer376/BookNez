@@ -109,7 +109,7 @@ const VenueDetail = () => {
 
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Fetching pricing for:', dateStr, 'Venue:', id); // DEBUG
+      // Fetching pricing
       const { data, error } = await supabase
         .from('venue_pricing')
         .select('*')
@@ -117,7 +117,6 @@ const VenueDetail = () => {
         .eq('date', dateStr);
 
       if (error) throw error;
-      console.log('Fetched pricing data:', data); // DEBUG
       setDynamicPricing(data || []);
     } catch (error: any) {
       console.error('Error fetching pricing:', error);
@@ -286,7 +285,7 @@ const VenueDetail = () => {
 
   const isSlotUnavailable = (time: string) => {
     const pricing = dynamicPricing.find(p => p.time_slot === time);
-    // console.log(`Checking slot ${time}:`, pricing); // DEBUG verbose
+    // Checking slot pricing
     if (pricing?.is_frozen) return true;
     if (bookedSlots.includes(time)) return true;
     return false;
@@ -359,8 +358,31 @@ const VenueDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background pb-20">
+        <div className="container mx-auto px-4 py-8 max-w-7xl animate-pulse">
+          {/* Header Skeleton */}
+          <div className="h-10 w-32 bg-muted rounded mb-8"></div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Left Column Skeletons */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Image Gallery Skeleton */}
+              <div className="h-64 sm:h-80 lg:h-96 w-full bg-muted rounded-xl"></div>
+              {/* Thumbnails */}
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-16 bg-muted rounded-md"></div>)}
+              </div>
+
+              {/* Details Card Skeleton */}
+              <div className="h-96 w-full bg-muted rounded-xl"></div>
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div className="lg:col-span-1">
+              <div className="h-96 w-full bg-muted rounded-xl sticky top-24"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
