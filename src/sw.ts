@@ -17,6 +17,10 @@ self.addEventListener('push', (event) => {
         body: data?.body || 'You have a new message!',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
+        sound: '/notification.mp3',
+        vibrate: [200, 100, 200],
+        tag: 'booknex-notification',
+        renotify: true,
         data: {
             url: data?.url || '/'
         }
@@ -31,7 +35,7 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close()
 
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
             // Check if there's already a window open
             for (const client of clientList) {
                 if (client.url === event.notification.data.url && 'focus' in client) {
@@ -39,8 +43,8 @@ self.addEventListener('notificationclick', (event) => {
                 }
             }
             // If not, open a new window
-            if (clients.openWindow) {
-                return clients.openWindow(event.notification.data.url)
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(event.notification.data.url)
             }
         })
     )
