@@ -88,7 +88,7 @@ const LoginUser = () => {
       setActiveRole('user');
 
       // Auto-subscribe to push notifications
-      subscribe(data.user.id);
+      await subscribe(data.user.id);
 
       navigate('/dashboard/user');
     } catch (error) {
