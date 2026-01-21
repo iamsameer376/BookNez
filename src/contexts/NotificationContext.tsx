@@ -52,8 +52,9 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
                 .from('notifications')
                 .select('*')
                 .eq('recipient_id', user.id)
+                .eq('is_read', false) // Only fetch unread
                 .order('created_at', { ascending: false })
-                .limit(20);
+                .limit(50); // Increased limit since we filter by unread
 
             if (error) throw error;
             setNotifications(data as Notification[]);
@@ -115,10 +116,8 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     }, [user, fetchNotifications, toast]);
 
     const markAsRead = async (id: string) => {
-        // Optimistic update: Update UI immediately
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-        );
+        // Optimistic update: Remove from UI immediately
+        setNotifications(prev => prev.filter(n => n.id !== id));
 
         try {
             const { error } = await supabase
@@ -146,7 +145,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
             if (error) throw error;
 
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setNotifications([]); // Clear all locally
         } catch (error) {
             console.error('Error marking all as read:', error);
         }

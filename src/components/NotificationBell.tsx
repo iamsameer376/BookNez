@@ -31,7 +31,7 @@ export const NotificationBell = () => {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative transition-all hover:bg-primary/10">
                     <Bell className="h-5 w-5 text-foreground/80 transition-transform hover:scale-110" />
-                    {unreadCount > 0 && (
+                    {notifications.length > 0 && (
                         <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
@@ -42,7 +42,7 @@ export const NotificationBell = () => {
             <DropdownMenuContent align="end" className="w-80 backdrop-blur-xl bg-card/80 border-border/50 shadow-2xl">
                 <DropdownMenuLabel className="flex justify-between items-center">
                     <span>Notifications</span>
-                    {unreadCount > 0 && (
+                    {notifications.length > 0 && (
                         <Button
                             variant="ghost"
                             size="sm"
