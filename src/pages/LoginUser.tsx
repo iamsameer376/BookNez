@@ -133,7 +133,6 @@ const LoginUser = () => {
 
           <div className="space-y-2 text-center">
             <div className="flex items-center justify-center gap-3">
-              <img src="/logo.png" alt="BookNex Logo" className="h-10 w-auto object-contain" />
               <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
               <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-xs font-bold text-primary tracking-widest uppercase shadow-sm">
                 Beta

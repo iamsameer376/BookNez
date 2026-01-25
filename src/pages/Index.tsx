@@ -109,9 +109,6 @@ const Index = () => {
           transition={{ duration: 0.6 }}
           className="text-center space-y-4"
         >
-          <div className="inline-flex mb-4">
-            <img src="/logo.png" alt="BookNex Logo" className="w-32 h-32 object-contain" />
-          </div>
           <h1 className="text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
             BookNex
           </h1>

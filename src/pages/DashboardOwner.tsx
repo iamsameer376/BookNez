@@ -124,7 +124,6 @@ const DashboardOwner = () => {
             className="flex items-center gap-2 shrink-0 cursor-pointer"
             onClick={() => navigate('/dashboard/owner')}
           >
-            <img src="/logo.png" alt="BookNex Logo" className="h-8 md:h-10 w-auto object-contain" />
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5 md:gap-2">
                 <h1 className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">

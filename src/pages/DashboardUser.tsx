@@ -146,7 +146,6 @@ const DashboardUser = () => {
 
                 {/* Logo + Brand */}
                 <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer shrink-0 flex items-center gap-2">
-                  <img src="/logo.png" alt="BookNex Logo" className="h-8 md:h-10 w-auto object-contain" />
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5 md:gap-2">
                       <h1 className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">BookNex</h1>
