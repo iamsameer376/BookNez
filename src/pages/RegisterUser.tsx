@@ -132,7 +132,10 @@ const RegisterUser = () => {
           </Link>
 
           <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <img src="/logo.png" alt="BookNex Logo" className="h-10 w-auto object-contain" />
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">BookNex</h1>
+            </div>
             <h2 className="text-2xl font-semibold text-foreground">Create User Account</h2>
             <p className="text-muted-foreground">Join BookNex today</p>
           </div>

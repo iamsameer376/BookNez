@@ -8,7 +8,10 @@ const RoleSelection = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <div className="w-full max-w-4xl space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-primary">BookNex</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img src="/logo.png" alt="BookNex Logo" className="h-12 w-auto object-contain" />
+            <h1 className="text-4xl font-bold text-primary">BookNex</h1>
+          </div>
           <p className="text-muted-foreground">Choose how you want to continue</p>
         </div>
 

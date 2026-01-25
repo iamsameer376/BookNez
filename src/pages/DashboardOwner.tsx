@@ -121,15 +121,19 @@ const DashboardOwner = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col shrink-0"
+            className="flex items-center gap-2 shrink-0 cursor-pointer"
+            onClick={() => navigate('/dashboard/owner')}
           >
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <h1 className="text-xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
-                BookNex
-              </h1>
-              <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
-                Beta
-              </span>
+            <img src="/logo.png" alt="BookNex Logo" className="h-8 md:h-10 w-auto object-contain" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <h1 className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">
+                  BookNex
+                </h1>
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
+                  Beta
+                </span>
+              </div>
             </div>
           </motion.div>
 

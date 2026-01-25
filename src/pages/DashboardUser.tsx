@@ -145,12 +145,15 @@ const DashboardUser = () => {
               <div className="flex items-center justify-between gap-2">
 
                 {/* Logo + Brand */}
-                <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer shrink-0 flex flex-col">
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <h1 className="text-xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">BookNex</h1>
-                    <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
-                      Beta
-                    </span>
+                <div onClick={() => navigate('/dashboard/user')} className="cursor-pointer shrink-0 flex items-center gap-2">
+                  <img src="/logo.png" alt="BookNex Logo" className="h-8 md:h-10 w-auto object-contain" />
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                      <h1 className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tight leading-none">BookNex</h1>
+                      <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-[10px] font-bold text-primary tracking-widest uppercase shadow-sm">
+                        Beta
+                      </span>
+                    </div>
                   </div>
                 </div>
 
