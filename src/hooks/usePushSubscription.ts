@@ -1,22 +1,94 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { PushNotifications, Token, ActionPerformed } from '@capacitor/push-notifications';
+import { Capacitor } from '@capacitor/core';
 
 const VAPID_PUBLIC_KEY = 'BPkAQjU4i25Cis5ArpvIxo28GgqGS9kQD8Pki8qyZjQLMhV8lNJpudtt4jKL6Mn1RZVnQrPewaJYfVDGqqUovvA';
 
 export const usePushSubscription = () => {
     const { user } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [permission, setPermission] = useState<NotificationPermission>('default');
 
-    useEffect(() => {
-        if ('Notification' in window) {
-            setPermission(Notification.permission);
-            checkSubscription();
+    const checkSubscription = useCallback(async () => {
+        if (!user) {
+            setLoading(false);
+            return;
         }
-    }, []);
+
+        try {
+            setLoading(true);
+            // Check database for existing subscription for this user on this platform
+            const userAgent = Capacitor.isNativePlatform() ? 'Capacitor Native' : navigator.userAgent;
+            const { data, error } = await supabase
+                .from('push_subscriptions')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('user_agent', userAgent)
+                .maybeSingle();
+
+            if (data) {
+                setIsSubscribed(true);
+                setPermission('granted');
+            } else {
+                setIsSubscribed(false);
+                if (!Capacitor.isNativePlatform() && 'Notification' in window) {
+                    setPermission(Notification.permission);
+                }
+            }
+        } catch (err) {
+            console.error("Error checking subscription status:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        checkSubscription();
+
+        if (Capacitor.isNativePlatform()) {
+            // Setup Native Listeners once
+            const setupNativeListeners = async () => {
+                await PushNotifications.addListener('registration', async (token: Token) => {
+                    console.log('Push registration success, token: ' + token.value);
+                    if (user) {
+                        const { error } = await supabase.from('push_subscriptions').upsert({
+                            user_id: user.id,
+                            subscription: { native_token: token.value, platform: Capacitor.getPlatform() },
+                            user_agent: 'Capacitor Native'
+                        }, { onConflict: 'user_id, user_agent' });
+
+                        if (!error) {
+                            setIsSubscribed(true);
+                            setPermission('granted');
+                        }
+                    }
+                });
+
+                await PushNotifications.addListener('registrationError', (error: any) => {
+                    console.error('Error on registration: ' + JSON.stringify(error));
+                    toast({
+                        title: "Registration Failed",
+                        description: "Failed to register for push notifications. Ensure Firebase is configured.",
+                        variant: "destructive"
+                    });
+                });
+
+                await PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
+                    console.log('Push action performed: ' + JSON.stringify(notification));
+                });
+            };
+
+            setupNativeListeners();
+
+            return () => {
+                PushNotifications.removeAllListeners();
+            };
+        }
+    }, [user, checkSubscription]);
 
     const urlBase64ToUint8Array = (base64String: string) => {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -31,48 +103,41 @@ export const usePushSubscription = () => {
         return outputArray;
     };
 
-    const checkSubscription = async () => {
-        if (!('serviceWorker' in navigator)) return;
-
+    const subscribeNative = async () => {
         try {
-            const reg = await navigator.serviceWorker.ready;
-            // Safari check: pushManager might be undefined if not added to home screen
-            if (!reg.pushManager) {
-                console.log("PushManager not supported in this browser environment (likely Safari without 'Add to Home Screen')");
-                setIsSubscribed(false);
-                return;
+            let perm = await PushNotifications.checkPermissions();
+            if (perm.receive !== 'granted') {
+                perm = await PushNotifications.requestPermissions();
             }
 
-            const sub = await reg.pushManager.getSubscription();
-            if (sub) {
-                setIsSubscribed(true);
-            } else {
-                setIsSubscribed(false);
+            if (perm.receive !== 'granted') {
+                throw new Error("Push notification permission denied");
             }
-        } catch (err) {
-            console.error("Error checking subscription:", err);
-            setIsSubscribed(false);
+
+            await PushNotifications.register().catch(err => {
+                console.error("Native push registration failed", err);
+                throw new Error("Push registration failed. Please ensure Firebase is configured.");
+            });
+        } catch (error: any) {
+            console.error('Native subscription error:', error);
+            toast({
+                title: "Subscription Failed",
+                description: error.message || "Failed to enable notifications.",
+                variant: "destructive"
+            });
+            throw error;
         }
     };
 
-    const subscribe = async (userIdOverride?: string) => {
-        const targetUserId = userIdOverride || user?.id;
-
-        if (!targetUserId) {
-            console.warn("Cannot subscribe without user ID");
-            return;
-        }
-
+    const subscribeWeb = async (userId: string) => {
         try {
-            setLoading(true);
             if (!('serviceWorker' in navigator)) {
                 throw new Error('Service workers are not supported');
             }
 
             const reg = await navigator.serviceWorker.ready;
-
             if (!reg.pushManager) {
-                throw new Error('Push notifications are not supported on this device/browser. If you are using Safari on iOS, please use the "Add to Home Screen" option first.');
+                throw new Error('Push notifications are not supported on this device/browser.');
             }
 
             const sub = await reg.pushManager.subscribe({
@@ -80,76 +145,61 @@ export const usePushSubscription = () => {
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
 
-            // Save to Supabase
             const { error } = await supabase.from('push_subscriptions').insert({
-                user_id: targetUserId,
+                user_id: userId,
                 subscription: sub.toJSON(),
                 user_agent: navigator.userAgent
             });
 
-            if (error) {
-                console.error('Database error:', error);
-                // If duplicate/error we might still consider them subscribed locally
-            }
+            if (error) console.error('Database error:', error);
 
             setIsSubscribed(true);
             setPermission('granted');
-            // toast({ title: "Subscribed!", description: "You will now receive notifications on this device." });
-            // Commenting out toast to be less intrusive on auto-login
-
         } catch (error: any) {
-            console.error('Subscription error:', error);
-
-            // Check for VAPID key mismatch error (often manifest as InvalidStateError or NotAllowedError with specific messages)
-            const errorMessage = error.message || "";
-            const isKeyMismatch =
-                error.name === 'InvalidStateError' ||
-                errorMessage.includes('applicationServerKey') ||
-                errorMessage.includes('different applicationServerKey');
-
-            if (isKeyMismatch) {
-                console.log('VAPID key mismatch detected, attempting to reset subscription...');
-                try {
-                    const reg = await navigator.serviceWorker.ready;
-                    const existingSub = await reg.pushManager.getSubscription();
-                    if (existingSub) {
-                        await existingSub.unsubscribe();
-                        console.log('Successfully unsubscribed from old VAPID key. Retrying subscription...');
-                        // Retry matching the original call
-                        return await subscribe(userIdOverride);
-                    }
-                } catch (retryError) {
-                    console.error('Failed to reset subscription:', retryError);
-                }
-            }
-
-            // Detailed error for debugging if retry fails or it's a different error
+            console.error('Web subscription error:', error);
             toast({
                 title: "Subscription Failed",
                 description: error.message || "Failed to subscribe to notifications.",
-                variant: "destructive",
-                duration: 5000 // Last longer to read
+                variant: "destructive"
             });
+            throw error;
+        }
+    };
+
+    const subscribe = async (userIdOverride?: string) => {
+        const targetUserId = userIdOverride || user?.id;
+        if (!targetUserId) return;
+
+        setLoading(true);
+        try {
+            if (Capacitor.isNativePlatform()) {
+                await subscribeNative();
+            } else {
+                await subscribeWeb(targetUserId);
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const unsubscribe = async () => {
+        if (!user) return;
+        setLoading(true);
         try {
-            setLoading(true);
-            if (!('serviceWorker' in navigator)) return;
+            const userAgent = Capacitor.isNativePlatform() ? 'Capacitor Native' : navigator.userAgent;
+            await supabase.from('push_subscriptions')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('user_agent', userAgent);
 
-            const reg = await navigator.serviceWorker.ready;
-            if (!reg.pushManager) return;
-
-            const sub = await reg.pushManager.getSubscription();
-            if (sub) {
-                await sub.unsubscribe();
-                // Ideally remove from DB too
-                setIsSubscribed(false);
-                toast({ title: "Unsubscribed", description: "Notifications disabled for this device." });
+            if (!Capacitor.isNativePlatform()) {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager?.getSubscription();
+                if (sub) await sub.unsubscribe();
             }
+
+            setIsSubscribed(false);
+            toast({ title: "Unsubscribed", description: "Notifications disabled." });
         } catch (error) {
             console.error(error);
         } finally {
@@ -166,3 +216,5 @@ export const usePushSubscription = () => {
         checkSubscription
     };
 };
+
+

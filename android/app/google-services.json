@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "618763029338",
+    "project_id": "booknez",
+    "storage_bucket": "booknez.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:618763029338:android:0572f535332499adf3c163",
+        "android_client_info": {
+          "package_name": "com.booknez.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9DMNt8ajPyK2IcZzzZnoC4aFxqYPN77A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
