@@ -34,11 +34,23 @@ export const usePushSubscription = () => {
     const checkSubscription = async () => {
         if (!('serviceWorker' in navigator)) return;
 
-        const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.getSubscription();
-        if (sub) {
-            setIsSubscribed(true);
-        } else {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            // Safari check: pushManager might be undefined if not added to home screen
+            if (!reg.pushManager) {
+                console.log("PushManager not supported in this browser environment (likely Safari without 'Add to Home Screen')");
+                setIsSubscribed(false);
+                return;
+            }
+
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                setIsSubscribed(true);
+            } else {
+                setIsSubscribed(false);
+            }
+        } catch (err) {
+            console.error("Error checking subscription:", err);
             setIsSubscribed(false);
         }
     };
@@ -58,6 +70,11 @@ export const usePushSubscription = () => {
             }
 
             const reg = await navigator.serviceWorker.ready;
+
+            if (!reg.pushManager) {
+                throw new Error('Push notifications are not supported on this device/browser. If you are using Safari on iOS, please use the "Add to Home Screen" option first.');
+            }
+
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -124,6 +141,8 @@ export const usePushSubscription = () => {
             if (!('serviceWorker' in navigator)) return;
 
             const reg = await navigator.serviceWorker.ready;
+            if (!reg.pushManager) return;
+
             const sub = await reg.pushManager.getSubscription();
             if (sub) {
                 await sub.unsubscribe();
