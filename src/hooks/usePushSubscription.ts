@@ -82,7 +82,31 @@ export const usePushSubscription = () => {
 
         } catch (error: any) {
             console.error('Subscription error:', error);
-            // Detailed error for debugging
+
+            // Check for VAPID key mismatch error (often manifest as InvalidStateError or NotAllowedError with specific messages)
+            const errorMessage = error.message || "";
+            const isKeyMismatch =
+                error.name === 'InvalidStateError' ||
+                errorMessage.includes('applicationServerKey') ||
+                errorMessage.includes('different applicationServerKey');
+
+            if (isKeyMismatch) {
+                console.log('VAPID key mismatch detected, attempting to reset subscription...');
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const existingSub = await reg.pushManager.getSubscription();
+                    if (existingSub) {
+                        await existingSub.unsubscribe();
+                        console.log('Successfully unsubscribed from old VAPID key. Retrying subscription...');
+                        // Retry matching the original call
+                        return await subscribe(userIdOverride);
+                    }
+                } catch (retryError) {
+                    console.error('Failed to reset subscription:', retryError);
+                }
+            }
+
+            // Detailed error for debugging if retry fails or it's a different error
             toast({
                 title: "Subscription Failed",
                 description: error.message || "Failed to subscribe to notifications.",
